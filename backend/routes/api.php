@@ -9,17 +9,23 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\SubscriptionController;
 
 // Authentication routes
-Route::post(uri: '/register', action: [AuthController::class, 'register']); // Route to handle user registration
-Route::post(uri: '/login', action: [AuthController::class, 'login']); // Route to handle user login
-Route::post(uri: '/logout', action: [AuthController::class, 'logout'])
-    ->middleware(middleware: 'auth:sanctum'); // Route to handle user logout, secured with Sanctum middleware
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
 // Resource routes for handling CRUD operations via API Resources
 Route::middleware('auth:sanctum')->group(function () {
-    Route::apiResource('customers', CustomerController::class); // Routes for customer CRUD operations
-    Route::apiResource('users', UserController::class); // Routes for user CRUD operations
-    Route::apiResource('invoices', InvoiceController::class); // Routes for invoice CRUD operations
-    Route::apiResource('subscriptions', SubscriptionController::class); // Routes for subscription CRUD operations
+    Route::post('/logout', [AuthController::class, 'logout']); // Verplaats deze naar binnen de middleware-groep
+
+    // API resource routes
+    Route::apiResource('customers', CustomerController::class);
+    Route::apiResource('users', UserController::class);
+    Route::apiResource('invoices', InvoiceController::class);
+    Route::apiResource('subscriptions', SubscriptionController::class);
+
+    // Additional routes
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
 });
 
 // Utility routes

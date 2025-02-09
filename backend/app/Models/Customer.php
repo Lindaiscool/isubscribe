@@ -11,7 +11,7 @@ class Customer extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'email', 'adres', 'subscriptions'];
+    protected $fillable = ['name', 'email', 'street', 'house_number', 'postal_code', 'city'];
 
     public function invoices()
     {

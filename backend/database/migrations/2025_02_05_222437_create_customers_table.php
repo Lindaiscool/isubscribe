@@ -15,7 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->string('adres');
+            $table->string('street');
+            $table->string('house_number');
+            $table->string('postal_code');
+            $table->string('city');
             $table->timestamps();
         });
     }

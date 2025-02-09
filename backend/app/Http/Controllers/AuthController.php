@@ -36,11 +36,11 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         // Return a JSON response with user data and access token.
-        return response()->json([
-            'message' => 'User registered successfully',
-            'user' => $user,
-            'token' => $token
-        ]);
+    return response()->json([
+        'message' => 'User registered successfully',
+        'user' => $user,
+        'token' => $token,
+    ], 201);
     }
 
     /**
@@ -84,10 +84,10 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        // Delete the tokens associated with the user to effectively log them out.
+        // Verwijder de API-tokens van de gebruiker
         $request->user()->tokens()->delete();
 
-        // Return a successful logout response.
         return response()->json(['message' => 'Logged out successfully']);
     }
+
 }

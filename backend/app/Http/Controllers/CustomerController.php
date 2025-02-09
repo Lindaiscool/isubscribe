@@ -38,28 +38,39 @@ public function index() {
      */
     public function store(Request $request)
     {
-        // Validate the request data.
+        // Valideer de losse adresvelden
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:customers',
-            'adres' => 'required|string|max:255',
-            'subscriptions' => 'required|array',
-            'subscriptions.*' => 'exists:subscriptions,id' // Ensure all provided IDs exist
+            'name'         => 'required|string|max:255',
+            'email'        => 'required|email|unique:customers',
+            'street'       => 'required|string|max:255',
+            'house_number'  => 'required|string|max:255',
+            'postal_code'   => 'required|string|max:10',
+            'city'         => 'required|string|max:255',
+            'subscriptions'=> 'required|array',
+            'subscriptions.*' => 'exists:subscriptions,id'
         ]);
 
-        // Create and save the new customer to the database.
+        // Maak een nieuwe klant aan en vul de losse velden in
         $customer = new Customer();
-        $customer->name = $request->name;
-        $customer->email = $request->email;
-        $customer->adres = $request->adres;
+        $customer->name        = $request->name;
+        $customer->email       = $request->email;
+        $customer->street      = $request->street;
+        $customer->house_number = $request->house_number;
+        $customer->postal_code  = $request->postal_code;
+        $customer->city        = $request->city;
         $customer->save();
 
-        // Attach subscriptions to the customer
+        // Koppel subscriptions
         $customer->subscriptions()->attach($request->subscriptions);
 
-        // Return the newly created customer data with a 201 status code.
-        return response()->json(['message' => 'Customer created successfully!', 'customer' => $customer], 201);
+        // Laad de subscriptions opnieuw
+        $customer->load('subscriptions');
+        return response()->json([
+            'message'  => 'Customer created successfully!',
+            'customer' => $customer
+        ], 201);
     }
+
 
     /**
      * Display a specific customer by ID.
@@ -92,23 +103,34 @@ public function index() {
      */
     public function update(Request $request, string $id)
     {
-        // Validate the request data.
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:customers,email,' . $id, // Ensure email is unique excluding the current customer.
-            'adres' => 'required|string|max:255',
+            'name'         => 'required|string|max:255',
+            'email'        => 'required|email|unique:customers,email,' . $id,
+            'street'       => 'required|string|max:255',
+            'house_number'  => 'required|string|max:255',
+            'postal_code'   => 'required|string|max:10',
+            'city'         => 'required|string|max:255',
+            'subscriptions'=> 'required|array',
+            'subscriptions.*' => 'exists:subscriptions,id'
         ]);
 
-        // Find the customer by ID, update it, and save the changes.
         $customer = Customer::find($id);
-        $customer->name = $request->name;
-        $customer->email = $request->email;
-        $customer->adres = $request->adres;
+        $customer->name        = $request->name;
+        $customer->email       = $request->email;
+        $customer->street      = $request->street;
+        $customer->house_number = $request->house_number;
+        $customer->postal_code  = $request->postal_code;
+        $customer->city        = $request->city;
+
+        // Synchroniseer subscriptions
+        $customer->subscriptions()->sync($request->subscriptions);
         $customer->save();
 
-        // Return the updated customer data.
+        $customer->load('subscriptions'); // Herlaad subscriptions
+
         return response()->json($customer, 200);
     }
+
 
     /**
      * Remove the specified customer from the database.
