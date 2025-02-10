@@ -84,3 +84,9 @@ it('geeft een foutmelding bij het bijwerken van een klant met ongeldige gegevens
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['email']);
 });
+
+it('geeft een foutmelding bij het verwijderen van een onbekende klant', function () {
+    $response = $this->deleteJson('/api/customers/999');
+
+    $response->assertStatus(500);
+});

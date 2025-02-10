@@ -34,9 +34,7 @@ export const logout = async () => {
     authToken.set(null);
 
     // Handle the response: inform the user of the logout status via an alert.
-    if (response.ok) {
-        alert("Logged out successfully!"); // Success message
-    } else {
+    if (!response.ok) {
         alert("Logout failed!"); // Failure message
     }
     page("/login");

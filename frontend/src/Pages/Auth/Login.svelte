@@ -3,6 +3,8 @@
     import { authToken } from "../../stores/auth.js";
     // Import the page library for programmatic navigation
     import page from "page";
+    // Import the toastr library for displaying notifications
+    import toastr from "toastr";
 
     // Local state variables for holding the email and password input from the user
     let email = "";
@@ -30,14 +32,20 @@
         if (response.ok) {
             // Set the received authentication token to the global authToken store
             authToken.set(data.token);
-            // Alert the user that login was successful
-            alert("Login successful!");
-            // Navigate to the homepage using the page.js library
             page("/");
         } else {
-            // If login is not successful, alert the user with the returned message or a default message
-            alert(data.message || "Login failed!");
+    if (data.errors) {
+        let message = "Login failed: ";
+        for (const [field, errors] of Object.entries(data.errors)) {
+            message += `${field} - ${errors.join(", ")}. `;
         }
+        toastr.error(message, "Login Error");
+    } else {
+        const defaultMsg = data.message || "Login failed!";
+        toastr.error(defaultMsg, "Login Error");
+    }
+}
+
     };
 </script>
 

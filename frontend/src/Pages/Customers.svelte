@@ -2,11 +2,14 @@
     import { onMount } from "svelte";
     import { writable, get } from "svelte/store";
     import { derived } from "svelte/store";
+    import toastr from "toastr";
 
     import MultiSelect from "../Components/MultiSelect.svelte";
     import AddCustomerModal from "../Components/AddCustomerModal.svelte";
+    import EditCustomerModal from "../Components/EditCustomerModal.svelte";
     import { authToken } from "../stores/auth";
 
+    // Stores en basisvariabelen
     let customers = writable([]);
     let subscriptions = writable([]);
     let selectedSubscriptions = writable([]);
@@ -15,19 +18,26 @@
     let sortColumn = writable(null);
     let selectedSubscription = writable(0);
 
-    let showModal = false;
+    let showModal = false; // Voor AddCustomerModal
 
+    // Ophalen van klanten
     async function fetchCustomers() {
         const res = await fetch("http://localhost:8000/api/customers", {
             headers: { Authorization: "Bearer " + $authToken },
         });
         if (res.ok) {
-            customers.set(await res.json());
+            let data = await res.json();
+            data = data.map((customer) => {
+                customer.adres = `${customer.street} ${customer.house_number}, ${customer.postal_code} ${customer.city}`;
+                return customer;
+            });
+            customers.set(data);
         } else {
             console.error("Failed to fetch customers");
         }
     }
 
+    // Ophalen van subscriptions
     async function fetchSubscriptions() {
         const res = await fetch("http://localhost:8000/api/subscriptions", {
             headers: { Authorization: "Bearer " + $authToken },
@@ -48,7 +58,7 @@
     const sortedAndFilteredCustomers = derived([customers, searchTerm, selectedSubscription, sortOrder, sortColumn], ([$customers, $searchTerm, $selectedSubscription, $sortOrder, $sortColumn]) => {
         return $customers
             .filter((customer) => {
-                const matchesSearch = customer.name.toLowerCase().includes($searchTerm.toLowerCase()) || customer.email.toLowerCase().includes($searchTerm.toLowerCase()) || customer.adres.toLowerCase().includes($searchTerm.toLowerCase()) || customer.subscriptions.some((sub) => sub.name.toLowerCase().includes($searchTerm.toLowerCase()));
+                const matchesSearch = customer.name.toLowerCase().includes($searchTerm.toLowerCase()) || customer.email.toLowerCase().includes($searchTerm.toLowerCase()) || customer?.adres.toLowerCase().includes($searchTerm.toLowerCase()) || customer.subscriptions.some((sub) => sub.name.toLowerCase().includes($searchTerm.toLowerCase()));
                 const matchesSubscription = $selectedSubscription ? customer.subscriptions.some((sub) => sub.id === $selectedSubscription) : true;
                 return matchesSearch && matchesSubscription;
             })
@@ -68,13 +78,11 @@
     let currentPage = writable(1);
     const itemsPerPage = 10;
 
-    // Klanten voor de huidige pagina
     const paginatedCustomers = derived([sortedAndFilteredCustomers, currentPage], ([$sortedAndFilteredCustomers, $currentPage]) => {
         const startIndex = ($currentPage - 1) * itemsPerPage;
         return $sortedAndFilteredCustomers.slice(startIndex, startIndex + itemsPerPage);
     });
 
-    // Totaal aantal pagina's
     const totalPages = derived(sortedAndFilteredCustomers, ($sortedAndFilteredCustomers) => {
         return Math.ceil($sortedAndFilteredCustomers.length / itemsPerPage) || 1;
     });
@@ -87,11 +95,63 @@
         const t = get(totalPages);
         currentPage.update((n) => Math.min(n + 1, t));
     }
+
+    // --- Edit Modal Functionaliteit ---
+    let showEditModal = false;
+    let editCustomer = { id: "", name: "", email: "", adres: "", street: "", house_number: "", postal_code: "", city: "", subscriptions: [] };
+
+    function openEditModal(customer) {
+        // Maak een kopie zodat we geen directe mutaties uitvoeren op de originele data
+        editCustomer = { ...customer };
+        showEditModal = true;
+    }
+
+    function closeEditModal() {
+        showEditModal = false;
+    }
+
+    // Werk de customers store bij wanneer een klant succesvol is bewerkt
+    function handleUpdate(event) {
+        const updatedCustomer = event.detail;
+        customers.update((current) => current.map((c) => (c.id === updatedCustomer.id ? updatedCustomer : c)));
+        closeEditModal();
+    }
+
+    // --- Delete Functionaliteit ---
+    async function deleteCustomer(customer) {
+        if (confirm("Are you sure you want to delete this customer?")) {
+            const response = await fetch(`http://localhost:8000/api/customers/${customer.id}`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: "Bearer " + $authToken,
+                    Accept: "application/json",
+                },
+            });
+            if (response.ok) {
+                customers.update((current) => current.filter((c) => c.id !== customer.id));
+            } else {
+                const responseData = await response.json();
+                if (responseData.errors) {
+                    let message = "Failed to delete customer: ";
+                    for (const [field, errors] of Object.entries(responseData.errors)) {
+                        message += `${field} - ${errors.join(", ")}. `;
+                    }
+                    toastr.error(message, "Error");
+                } else {
+                    toastr.error("Failed to delete customer", "Error");
+                }
+            }
+        }
+    }
 </script>
 
+<!-- Add Customer Modal -->
 <AddCustomerModal {showModal} bind:customers={$customers} />
 
-<div class="max-w-7xl mx-auto p-6">
+<!-- Edit Customer Modal -->
+<EditCustomerModal show={showEditModal} customer={editCustomer} allSubs={$subscriptions} on:update={handleUpdate} on:close={closeEditModal} />
+
+<div class="w-full mx-auto">
     <!-- Card Container -->
     <div class="bg-neutral-900 shadow rounded-lg p-6">
         <h1 class="text-2xl font-semibold text-white mb-6">Customer Management</h1>
@@ -125,11 +185,11 @@
                             Customer Name
                             {#if $sortColumn === "name"}
                                 {#if $sortOrder === "asc"}
-                                    <svg class="w-3 h-3 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <svg class="w-3 h-3 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
                                     </svg>
                                 {:else}
-                                    <svg class="w-3 h-3 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <svg class="w-3 h-3 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                     </svg>
                                 {/if}
@@ -141,11 +201,11 @@
                             Email Address
                             {#if $sortColumn === "email"}
                                 {#if $sortOrder === "asc"}
-                                    <svg class="w-3 h-3 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <svg class="w-3 h-3 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
                                     </svg>
                                 {:else}
-                                    <svg class="w-3 h-3 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <svg class="w-3 h-3 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                     </svg>
                                 {/if}
@@ -157,17 +217,19 @@
                             Address
                             {#if $sortColumn === "adres"}
                                 {#if $sortOrder === "asc"}
-                                    <svg class="w-3 h-3 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <svg class="w-3 h-3 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
                                     </svg>
                                 {:else}
-                                    <svg class="w-3 h-3 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <svg class="w-3 h-3 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                                     </svg>
                                 {/if}
                             {/if}
                         </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"> Subscriptions </th>
+
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"> Subscriptions </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider"> Actions </th>
                     </tr>
                 </thead>
                 <tbody class="bg-neutral-900 divide-y divide-gray-700">
@@ -188,6 +250,10 @@
                                         {sub.name}
                                     </span>
                                 {/each}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-left">
+                                <button class="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition duration-300" on:click={() => openEditModal(customer)}> Edit </button>
+                                <button class="ml-2 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition duration-300" on:click={() => deleteCustomer(customer)}> Delete </button>
                             </td>
                         </tr>
                     {/each}
