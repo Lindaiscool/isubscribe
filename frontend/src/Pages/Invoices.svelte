@@ -13,6 +13,7 @@
     let subscriptions = writable([]);
     let currentPage = writable(1);
     const itemsPerPage = 10;
+    let hasGeneratedInvoicesThisMonth = writable(false); // Voeg een store toe om bij te houden of facturen zijn gegenereerd voor deze maand
 
     // Herstel de status van 'isGenerating' en 'isGenerated' bij het laden van de pagina
     onMount(() => {
@@ -27,20 +28,6 @@
     // Functie om facturen en abonnementen opnieuw op te halen
     const fetchData = async () => {
         try {
-            const subResponse = await fetch("http://localhost:8000/api/subscriptions", {
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: "Bearer " + $authToken,
-                    Accept: "application/json",
-                },
-            });
-            if (subResponse.ok) {
-                const subData = await subResponse.json();
-                subscriptions.set(subData);
-            } else {
-                throw new Error(`API fout: ${subResponse.statusText}`);
-            }
-
             const invResponse = await fetch("http://localhost:8000/api/invoices", {
                 headers: {
                     "Content-Type": "application/json",
@@ -51,6 +38,17 @@
             if (invResponse.ok) {
                 const invData = await invResponse.json();
                 invoices.set(invData);
+
+                // Controleer of er facturen zijn voor de huidige maand
+                const today = new Date();
+                const currentMonth = today.getMonth();
+                const currentYear = today.getFullYear();
+                const invoicesThisMonth = invData.filter((invoice) => {
+                    const invoiceDate = new Date(invoice.invoicedate);
+                    return invoiceDate.getMonth() === currentMonth && invoiceDate.getFullYear() === currentYear;
+                });
+
+                hasGeneratedInvoicesThisMonth.set(invoicesThisMonth.length > 0); // Stel in of er facturen zijn gegenereerd
             } else {
                 throw new Error(`API fout: ${invResponse.statusText}`);
             }
@@ -63,43 +61,42 @@
 
     // Functie om nieuwe facturen te genereren
     const generateAllInvoices = async () => {
-    isGenerating.set(true);
-    localStorage.setItem("isGenerating", "true"); // Sla de status op in localStorage
-    try {
-        const response = await fetch("http://localhost:8000/api/generate-invoices", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: "Bearer " + $authToken, // Zorg ervoor dat je het juiste token gebruikt
-            },
-        });
+        isGenerating.set(true);
+        localStorage.setItem("isGenerating", "true"); // Sla de status op in localStorage
+        try {
+            const response = await fetch("http://localhost:8000/api/generate-invoices", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + $authToken, // Zorg ervoor dat je het juiste token gebruikt
+                },
+            });
 
-        if (!response.ok) {
-            throw new Error(`API fout: ${response.statusText}`);
+            if (!response.ok) {
+                throw new Error(`API fout: ${response.statusText}`);
+            }
+
+            const responseData = await response.json();
+
+            // Als facturen al zijn gegenereerd, toon dan een waarschuwing, anders een succesmelding
+            if (responseData.message && responseData.message.includes("Facturen zijn al gegenereerd")) {
+                toastr.warning(responseData.message); // Toont een waarschuwing als facturen al bestaan
+            } else {
+                toastr.success(responseData.message); // Successmelding als facturen succesvol zijn gegenereerd
+            }
+
+            // Werk de status bij
+            isGenerated.set(true);
+            localStorage.setItem("isGenerated", "true"); // Markeer als verzonden
+            hasGeneratedInvoicesThisMonth.set(true); // Zet de status naar true omdat de facturen nu zijn gegenereerd
+        } catch (error) {
+            console.error("Er is een fout opgetreden bij het genereren van de facturen:", error);
+            toastr.error("Er is een fout opgetreden bij het genereren van de facturen."); // Foutmelding
+        } finally {
+            isGenerating.set(false);
+            localStorage.removeItem("isGenerating"); // Verwijder de status na afronden
         }
-
-        const responseData = await response.json();
-
-        // Als facturen al zijn gegenereerd, toon dan een waarschuwing, anders een succesmelding
-        if (responseData.message && responseData.message.includes("Facturen zijn al gegenereerd")) {
-            toastr.warning(responseData.message); // Toont een waarschuwing als facturen al bestaan
-        } else {
-            toastr.success(responseData.message); // Successmelding als facturen succesvol zijn gegenereerd
-        }
-
-        isGenerated.set(true);
-        localStorage.setItem("isGenerated", "true"); // Markeer als verzonden
-    } catch (error) {
-        console.error("Er is een fout opgetreden bij het genereren van de facturen:", error);
-        toastr.error("Er is een fout opgetreden bij het genereren van de facturen."); // Foutmelding
-    } finally {
-        isGenerating.set(false);
-        localStorage.removeItem("isGenerating"); // Verwijder de status na afronden
-    }
-};
-
-
-
+    };
 
     // Functie om facturen bij te werken
     // Functie om facturen bij te werken
@@ -187,10 +184,10 @@
     <!-- Genereer Alle Facturen Knop -->
     {#if $isGenerating}
         <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300 mt-10 mb-4" on:click={generateAllInvoices} disabled={$isGenerating || $isGenerated}>Generating...</button>
-    {:else if $isGenerated && !$canUpdate}
-        <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300 mt-10 mb-4" on:click={generateAllInvoices} disabled={$isGenerating}>Genereer Alle Facturen</button>
     {:else}
-        <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300 mt-10 mb-4" on:click={updateAllInvoices} disabled={$isGenerating || !$canUpdate}>Update</button>
+        <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300 mt-10 mb-4" on:click={generateAllInvoices} disabled={$isGenerating}>
+            {$hasGeneratedInvoicesThisMonth ? "Update" : "Genereer Alle Facturen"}
+        </button>
     {/if}
 </div>
 
