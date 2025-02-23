@@ -4,71 +4,70 @@
     import { authToken } from "../stores/auth.js";
     import toastr from "toastr";
 
-    export let showModal = false;
-    export let customers = [];
+    export let showModal = false; // Controls the visibility of the modal
+    export let customers; // The list of customers to be updated when a new customer is added
 
+    // Toggle the modal visibility
     function toggleModal() {
-        showModal = !showModal;
+        showModal = !showModal; // Toggle the showModal state
     }
 
-    // Basisgegevens
+    // Variables to store customer input data
     let name = "";
     let email = "";
 
-    // Losse adresvelden
+    // Address fields
     let street = "";
     let house_number = "";
     let postal_code = "";
     let city = "";
 
-    let addressError = "";
-    let formError = "";
+    let addressError = ""; // Holds address validation error message
+    let formError = ""; // Holds form validation error message
 
-    let allSubs = [];
-    let selectedSubs = [];
+    let allSubs = []; // All available subscriptions for the customer
+    let selectedSubs = []; // Subscriptions selected by the customer
 
-    onMount(() => {
-    toastr.success('Component mounted successfully!');
-});
-
-
+    // Fetch available subscriptions on component mount
     onMount(async () => {
         const res = await fetch("http://localhost:8000/api/subscriptions", {
             headers: {
-                Authorization: "Bearer " + $authToken,
+                Authorization: "Bearer " + $authToken, // Include the authentication token in the request
                 Accept: "application/json",
             },
         });
-        allSubs = await res.json();
+        allSubs = await res.json(); // Store the fetched subscriptions in the 'allSubs' array
     });
 
+    // Function to validate the address fields
     function validateAddress() {
         if (!street.trim() || !house_number.trim() || !postal_code.trim() || !city.trim()) {
-            addressError = "Alle adresvelden zijn verplicht.";
+            addressError = "All address fields are required."; // Show error if any address field is missing
             return false;
         }
         if (!/\d/.test(house_number)) {
-            addressError = "Huisnummer moet tenminste een cijfer bevatten.";
+            addressError = "House number must contain at least one digit."; // Ensure house number contains digits
             return false;
         }
         if (!/^\d{4}\s?[A-Za-z]{2}$/.test(postal_code)) {
-            addressError = "Postcode moet bestaan uit 4 cijfers en 2 letters (bijv. 1234 AB).";
+            addressError = "Postal code must consist of 4 digits and 2 letters (e.g., 1234 AB)."; // Validate Dutch postal code format
             return false;
         }
-        addressError = "";
-        return true;
+        addressError = ""; // Clear address error if validation passes
+        return true; // Return true if all validations pass
     }
 
+    // Handle the form submission for creating a new customer
     async function handleSubmit(event) {
-        event.preventDefault();
-        toastr.success('Testing toastr on form submission!');
-        formError = "";
+        event.preventDefault(); // Prevent the default form submission behavior
+        formError = ""; // Clear any previous form errors
 
+        // Validate the address before submitting the form
         if (!validateAddress()) {
-            return;
+            return; // Stop form submission if address validation fails
         }
 
-        // Verstuur de losse adresvelden mee
+        // Combine all input fields into a customer data object
         const customerData = {
             name,
             email,
@@ -76,74 +75,73 @@
             house_number,
             postal_code,
             city,
-            subscriptions: Object.values(selectedSubs),
+            subscriptions: Object.values(selectedSubs), // Get the selected subscriptions
         };
 
+        // Send the customer data to the backend API to create a new customer
         const response = await fetch("http://localhost:8000/api/customers", {
-            method: "POST",
+            method: "POST", // Specify the POST method to create the customer
             headers: {
-                "Content-Type": "application/json",
-                Authorization: "Bearer " + $authToken,
-                Accept: "application/json",
+                "Content-Type": "application/json", // Sending JSON data
+                Authorization: "Bearer " + $authToken, // Pass the authorization token in the header
+                Accept: "application/json", // Expecting JSON response
             },
-            body: JSON.stringify(customerData),
+            body: JSON.stringify(customerData), // Convert the customer data to JSON and send it
         });
 
-        const responseData = await response.json();
+        const responseData = await response.json(); // Parse the response JSON
         if (response.ok) {
-    toggleModal();
-    console.log("Customer created successfully", responseData);
-    customers.update(current => [
-        ...current,
-        {
-            id: responseData.customer.id,
-            name: responseData.customer.name,
-            email: responseData.customer.email,
-            adres: `${responseData.customer.street} ${responseData.customer.house_number}, ${responseData.customer.postal_code} ${responseData.customer.city}`,
-            subscriptions: responseData.customer.subscriptions,
-        },
-    ]);
-    toastr.success('Customer created successfully');
-}
- else {
-    if (responseData.errors) {
-        let message = "Failed to create customer: ";
-        // Loop door alle velden met fouten
-        for (const [field, errors] of Object.entries(responseData.errors)) {
-            // Voeg elk foutbericht toe aan de hoofdmelding
-            message += `${field} - ${errors.join(", ")}. `;
+            toggleModal(); // Close the modal if the customer is successfully created
+            customers.update((current) => [
+                ...current,
+                {
+                    id: responseData.customer.id,
+                    name: responseData.customer.name,
+                    email: responseData.customer.email,
+                    adres: `${responseData.customer.street} ${responseData.customer.house_number}, ${responseData.customer.postal_code} ${responseData.customer.city}`, // Combine address fields
+                    subscriptions: responseData.customer.subscriptions,
+                },
+            ]);
+            toastr.success("Customer created successfully"); // Show success message
+        } else {
+            // Handle errors if customer creation fails
+            if (responseData.errors) {
+                let message = "Failed to create customer: ";
+                for (const [field, errors] of Object.entries(responseData.errors)) {
+                    message += `${field} - ${errors.join(", ")}. `; // Construct error message with field-specific errors
+                }
+                toastr.error(message, "Error"); // Show error notification
+            } else {
+                toastr.error("Failed to create customer", "Error"); // General error message if no specific errors are found
+            }
         }
-        toastr.error(message, "Error");
-    } else {
-        // Als er geen specifieke fouten zijn geretourneerd, geef dan een algemene foutmelding
-        toastr.error("Failed to create customer", "Error");
-    }
-}
     }
 </script>
 
-<button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300 mt-10 mb-4" on:click={toggleModal}> Add Customer </button>
+<button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300 mt-10 mb-8" on:click={toggleModal}> Add Customer </button>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 {#if showModal}
+    <!-- Modal overlay, displayed when 'showModal' is true -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-10" on:click={toggleModal} on:keydown={(e) => e.key === "Enter" && toggleModal()} aria-label="Close modal">
+        <!-- Modal content that stops propagation when clicked inside -->
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" on:click|stopPropagation role="dialog" aria-modal="true">
             <h2 class="text-xl font-semibold">Add New Customer</h2>
+            <!-- Customer form -->
             <form on:submit={handleSubmit} class="space-y-4">
-                <!-- Naam -->
+                <!-- Name input -->
                 <div>
                     <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
                     <input type="text" id="name" bind:value={name} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Full Name" required />
                 </div>
-                <!-- Email -->
+                <!-- Email input -->
                 <div>
                     <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
                     <input type="email" id="email" bind:value={email} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="Email Address" required />
                 </div>
-                <!-- Adresvelden met Tailwind grid -->
+                <!-- Address fields with grid layout -->
                 <div class="grid grid-cols-3 gap-4 mb-2">
                     <div class="col-span-2">
                         <label for="street" class="block text-sm text-gray-700">Street</label>
@@ -164,12 +162,15 @@
                         <input type="text" id="city" bind:value={city} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="City" required />
                     </div>
                 </div>
+
                 {#if addressError}
-                    <p class="text-red-500 text-sm mt-1">{addressError}</p>
+                    <p class="text-red-500 text-sm mt-1">{addressError}</p> <!-- Display address error if validation fails -->
                 {/if}
-                <!-- MultiSelect component -->
+
+                <!-- MultiSelect component for subscriptions -->
                 <MultiSelect options={allSubs} bind:selected={selectedSubs} />
-                <!-- Form knoppen -->
+
+                <!-- Submit and Cancel buttons -->
                 <div class="flex justify-end">
                     <button type="button" class="px-4 py-2 bg-gray-300 text-black rounded hover:bg-gray-400 transition duration-300" on:click={toggleModal}>Cancel</button>
                     <button type="submit" class="ml-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300">Submit</button>

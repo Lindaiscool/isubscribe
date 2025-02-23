@@ -22,7 +22,7 @@ class AuthController extends Controller
         $request->validate([
             'name' => 'required|string',
             'email' => 'required|string|email|unique:users',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:6|confirmed|regex:/[a-z]/|regex:/[A-Z]/|regex:/[0-9]/|regex:/[@$!%*#?&]/',
         ]);
 
         // Create the user in the database.
@@ -59,7 +59,7 @@ class AuthController extends Controller
         // Attempt to authenticate the user using the provided credentials.
         if (!Auth::attempt($credentials)) {
             // Return response for unauthorized access.
-            return response()->json(['message' => 'Invalid login credentials'], 401);
+            return response()->json(['message' => 'Invalid login credentials'], status: 401);
         }
 
         // Retrieve the authenticated user.

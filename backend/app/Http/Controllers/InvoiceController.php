@@ -4,120 +4,127 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Invoice;
+use App\Models\Customer;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class InvoiceController extends Controller
 {
-    /**
-     * Retrieve and display all invoices.
-     *
-     * @return \Illuminate\Http\JsonResponse Returns all invoices as a JSON response with HTTP status 200.
-     */
+    // Haal alle facturen op met actieve abonnementen
     public function index()
     {
-        // Retrieve all invoices from the database using Eloquent and return them.
-        return response()->json(Invoice::all(), 200);
+        $today = Carbon::today();
+        $invoices = Invoice::with(['customer.subscriptions' => function ($query) use ($today) {
+            $query->where('start_date', '<=', $today)
+                ->where('end_date', '>=', $today);
+        }])->get();
+
+        return response()->json($invoices);
     }
 
-    /**
-     * Show the form for creating a new invoice.
-     * Note: Typically not implemented in API-driven applications as the creation form would be on the frontend.
-     */
-    public function create()
-    {
-        // Method body intentionally left empty.
+    // Genereer nieuwe facturen voor klanten met actieve abonnementen
+// Genereer nieuwe facturen voor klanten met actieve abonnementen
+public function generateInvoices()
+{
+    // Log de inkomende aanvraag om te zien of er iets misgaat
+    Log::debug('Generate invoices request', ['request_data' => request()->all()]);
+
+    $today = Carbon::today();
+    $currentMonth = $today->format('Y-m');  // Verkrijg de huidige maand en jaar (bijv. '2023-04')
+
+    // Haal klanten op met actieve abonnementen of abonnementen die binnenkort starten
+    $customers = Customer::whereHas('subscriptions', function ($query) use ($today, $currentMonth) {
+        $query->where('start_date', '<=', $today)
+              ->where('end_date', '>=', $today);
+    })->orWhereHas('subscriptions', function ($query) use ($today) {
+        $query->where('start_date', '>', $today); // Abonnementen die in de toekomst beginnen
+    })
+    ->with(['subscriptions' => function ($query) use ($today) {
+        $query->where('start_date', '<=', $today)
+              ->where('end_date', '>=', $today);
+    }])
+    ->get();
+
+    if ($customers->isEmpty()) {
+        return response()->json(['error' => 'Geen klanten met actieve abonnementen'], 400);
     }
 
-    /**
-     * Store a newly created invoice in the database.
-     *
-     * @param  \Illuminate\Http\Request  $request The request object containing the invoice data.
-     * @return \Illuminate\Http\JsonResponse Returns the newly created invoice as JSON with HTTP status 201.
-     */
-    public function store(Request $request)
+    Log::info("Facturen worden gegenereerd...");
+
+    $invoicesGenerated = 0; // Houd bij hoeveel facturen zijn gegenereerd
+    $message = ''; // Berichten voor de frontend
+
+    foreach ($customers as $customer) {
+        if ($customer->subscriptions->isEmpty()) {
+            continue; // Sla klanten over die geen actieve abonnementen hebben binnen de huidige datums
+        }
+
+        // Check of de klant al een factuur heeft voor de huidige maand
+        $lastInvoiceDate = $customer->last_invoice_date ? Carbon::parse($customer->last_invoice_date) : null;
+
+        // Als de klant nog geen factuur heeft of de laatste factuur niet in de huidige maand is, maak dan een nieuwe factuur
+        if (!$lastInvoiceDate || $lastInvoiceDate->month != $today->month) {
+            foreach ($customer->subscriptions as $subscription) {
+                // Maak de factuur aan voor de klant
+                $invoice = Invoice::create([
+                    'customer_id' => $customer->id,
+                    'invoicenumber' => $this->generateUniqueInvoiceNumber(),
+                    'invoicedate' => $today, // Zet de huidige datum als invoicedate
+                    'startdate' => $today->copy()->startOfMonth(), // Eerste dag van de maand
+                    'duedate' => $today->copy()->endOfMonth(), // Laatste dag van de maand
+                    'paymentterms' => 'Betaal binnen 30 dagen na factuurdatum.',
+                    'sent' => false,
+                    'subscription_name' => $subscription->name,
+                    'price' => $subscription->price, // Gebruik prijs van het abonnement
+                    'vat' => $subscription->vat,     // Gebruik VAT van het abonnement
+                ]);
+
+                // Update de klant met de laatste factuurdatum
+                $customer->last_invoice_date = $today;
+                $customer->save();
+
+                $invoicesGenerated++; // Verhoog de teller voor gegenereerde facturen
+            }
+        } else {
+            $message = 'Facturen zijn al gegenereerd voor deze maand.'; // Update het bericht
+            Log::info('Klant heeft al een factuur voor deze maand: klant ' . $customer->id);
+        }
+    }
+
+    if ($invoicesGenerated > 0) {
+        return response()->json(['message' => 'Facturen succesvol gegenereerd!', 'invoices_generated' => $invoicesGenerated]);
+    } else {
+        return response()->json(['message' => $message ? $message : 'Geen nieuwe facturen gegenereerd. Alle klanten hebben al een factuur voor deze maand.']);
+    }
+}
+
+
+
+
+
+
+
+    // Markeer facturen als verzonden
+    public function markAsSent(Request $request)
     {
-        // Validate the incoming request data.
-        $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'invoicenumber' => 'required|string|unique:invoices',
-            'invoicedate' => 'required|date',
-            'duedate' => 'required|date|after_or_equal:invoicedate',
-            'sentdate' => 'nullable|date',
-            'sent' => 'required|boolean',
-            'paymentterms' => 'nullable|string',
+        $invoiceIds = $request->input('invoice_ids', []);
+
+        Invoice::whereIn('id', $invoiceIds)->update([
+            'sent' => true,
+            'sentdate' => now()
         ]);
 
-        // Create and save the new invoice.
-        $invoice = new Invoice();
-        $invoice->fill($request->all());
-        $invoice->save();
-
-        // Return the newly created invoice data with a 201 status code.
-        return response()->json($invoice, 201);
+        return response()->json(['message' => 'Facturen verzonden!']);
     }
 
-    /**
-     * Display a specific invoice by its ID.
-     *
-     * @param Invoice $invoice The invoice model instance dependency injected by Laravel.
-     * @return \Illuminate\Http\JsonResponse Returns the specified invoice as JSON with HTTP status 200.
-     */
-    public function show(Invoice $invoice)
+    // Genereer een uniek factuurnummer
+    private function generateUniqueInvoiceNumber()
     {
-        // Directly return the invoice instance which is automatically retrieved by Laravel.
-        return response()->json($invoice, 200);
-    }
+        do {
+            $invoiceNumber = Str::random(15);
+        } while (Invoice::where('invoicenumber', $invoiceNumber)->exists());
 
-    /**
-     * Show the form for editing the specified invoice.
-     * Note: Typically not implemented in API-driven applications as the editing form would be on the frontend.
-     */
-    public function edit(string $id)
-    {
-        // Method body intentionally left empty.
-    }
-
-    /**
-     * Update the specified invoice in the database.
-     *
-     * @param  \Illuminate\Http\Request  $request The request object containing the new invoice data.
-     * @param  string $id The ID of the invoice to update.
-     * @return \Illuminate\Http\JsonResponse Returns the updated invoice as JSON with HTTP status 200.
-     */
-    public function update(Request $request, string $id)
-    {
-        // Validate the incoming request data.
-        $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'invoicenumber' => 'required|string|unique:invoices,invoicenumber,' . $id,
-            'invoicedate' => 'required|date',
-            'duedate' => 'required|date|after_or_equal:invoicedate',
-            'sentdate' => 'nullable|date',
-            'sent' => 'required|boolean',
-            'paymentterms' => 'nullable|string',
-        ]);
-
-        // Find the invoice, update its properties, and save it.
-        $invoice = Invoice::find($id);
-        $invoice->fill($request->all());
-        $invoice->save();
-
-        // Return the updated invoice data.
-        return response()->json($invoice, 200);
-    }
-
-    /**
-     * Remove the specified invoice from the database.
-     *
-     * @param string $id The ID of the invoice to delete.
-     * @return \Illuminate\Http\JsonResponse Returns a 204 HTTP status to indicate that the deletion was successful without any content.
-     */
-    public function destroy(string $id)
-    {
-        // Find the invoice and delete it.
-        $invoice = Invoice::find($id);
-        $invoice->delete();
-
-        // Return a 204 No Content status.
-        return response()->json(null, 204);
+        return $invoiceNumber;
     }
 }

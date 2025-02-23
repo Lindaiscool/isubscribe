@@ -17,7 +17,6 @@ class CustomerFactory extends Factory
             'house_number' => $this->faker->buildingNumber,
             'postal_code' => $this->faker->postcode,
             'city' => $this->faker->city
-            // Voeg hier eventuele andere velden toe die vereist zijn voor je Customer model.
         ];
     }
 }

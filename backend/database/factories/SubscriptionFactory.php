@@ -15,7 +15,7 @@ class SubscriptionFactory extends Factory
             'name' => $this->faker->word,
             'description' => $this->faker->sentence,
             'price' => $this->faker->randomFloat(2, 0, 100),
-            'vat' => $this->faker->randomFloat(2, 0, 100),
+            'vat' => $this->faker->randomFloat( 0, 100),
         ];
     }
 }

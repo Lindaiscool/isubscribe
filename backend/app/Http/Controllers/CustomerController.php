@@ -15,10 +15,11 @@ class CustomerController extends Controller
 // App\Http\Controllers\CustomerController.php
 
 public function index() {
-    // Fetch all customers with their related subscriptions
-    $customers = Customer::with('subscriptions')->get();
+    // Fetch all customers with their related subscriptions, including those that are soft-deleted
+    $customers = Customer::with('subscriptions')->withTrashed()->get();
     return response()->json($customers);
 }
+
 
 
     /**
@@ -147,4 +148,15 @@ public function index() {
         // Return a 204 No Content status to indicate successful deletion.
         return response()->json(null, 204);
     }
+
+    public function restore(string $id)
+{
+    $customer = Customer::withTrashed()->where('id', $id)->first();
+    if ($customer) {
+        $customer->restore();
+        return response()->json(['message' => 'Customer restored successfully'], 200);
+    }
+    return response()->json(['message' => 'Customer not found'], 404);
+}
+
 }

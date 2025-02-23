@@ -33,6 +33,7 @@
             // Set the received authentication token to the global authToken store
             authToken.set(data.token);
             page("/");
+            toastr.success("Login successful!", "Success");
         } else {
     if (data.errors) {
         let message = "Login failed: ";
@@ -49,14 +50,20 @@
     };
 </script>
 
-<h1>Login</h1>
-<!-- Form for user login; prevent default form submission behavior to handle with Svelte -->
-<form on:submit|preventDefault={login}>
-    <label for="email">Email</label>
-    <input type="email" id="email" bind:value={email} />
+<div class="min-h-96 flex flex-col items-center justify-center">
+    <h1 class="mb-5">Login</h1>
+    <form on:submit|preventDefault={login} class="w-full max-w-xs">
+        <!-- Form fields -->
+        <div class="mb-4">
+            <input type="email" id="email" bind:value={email} placeholder="Email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+        </div>
+        <div class="mb-6">
+            <input type="password" id="password" bind:value={password} placeholder="Password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+        </div>
+        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300">Login</button>
+                <p class="mt-4 text-sm text-gray-600">
+                    No account yet? <a href="/register" class="text-blue-500 hover:text-blue-700">Register</a>
+                </p>
+    </form>
+</div>
 
-    <label for="password">Password</label>
-    <input type="password" id="password" bind:value={password} />
-
-    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300">Login</button>
-</form>

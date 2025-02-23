@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('house_number');
             $table->string('postal_code');
             $table->string('city');
+            $table->date('last_invoice_date')->nullable();
+            $table->softDeletes();
             $table->timestamps();
         });
     }

@@ -10,7 +10,7 @@
     export let selected = [];
 
     // Placeholder text when nothing is selected
-    const placeholder = "Select multiple options...";
+    const placeholder = "Select subscription(s)";
 
     // State to track if the dropdown is open or not
     let isOpen = false;

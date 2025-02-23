@@ -23,11 +23,14 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        // Gebruik een hardcoded wachtwoord dat voldoet aan alle regels
+        $password = '_RnNjeB?uAx6aq%!'; // Dit voldoet aan alle validatieregels
+
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
+            'password' => Hash::make($password), // Geen password_confirmation
             'remember_token' => Str::random(10),
         ];
     }

@@ -10,7 +10,7 @@ class Subscription extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description', 'price', 'vat'];
+    protected $fillable = ['name', 'description', 'price', 'vat', 'start_date', 'end_date'];
 
     public function customers()
     {

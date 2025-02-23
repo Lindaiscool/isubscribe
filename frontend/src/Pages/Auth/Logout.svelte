@@ -17,21 +17,27 @@
         });
 
         // Check the response status to determine if the logout was successful
-        const responseData = await response.json();
         if (response.ok) {
-            authToken.set(null); // Clear the token from the store upon successful logout
-            window.location.href = "/login"; // Redirect the user to the login page
-        } else {
-            if (responseData.errors) {
-                let message = "Logout failed: ";
-                for (const [field, errors] of Object.entries(responseData.errors)) {
-                    message += `${field} - ${errors.join(", ")}. `;
-                }
-                toastr.error(message, "Logout Error");
-            } else {
-                toastr.error("Logout failed!", "Logout Error");
+    const responseData = await response.json();
+    authToken.set(null); // Clear the token from the store upon successful logout
+    toastr.success("Uitloggen is gelukt!", "Succesvol Uitgelogd"); // Toastr voor succesvol uitloggen
+    window.location.href = "/login"; // Redirect the user to the login page
+} else {
+    if (!response.bodyUsed) {
+        toastr.error("Network error or server is not responding.", "Logout Error");
+    } else {
+        const responseData = await response.json(); // Nu weten we dat het een fout is, proberen we de response te parsen.
+        if (responseData.errors) {
+            let message = "Logout failed: ";
+            for (const [field, errors] of Object.entries(responseData.errors)) {
+                message += `${field} - ${errors.join(", ")}. `;
             }
+            toastr.error(message, "Logout Error");
+        } else {
+            toastr.error("Logout failed!", "Logout Error");
         }
+    }
+}
     };
 </script>
 

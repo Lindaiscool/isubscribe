@@ -8,6 +8,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\SubscriptionController;
 
+
 // Authentication routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -21,6 +22,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UserController::class);
     Route::apiResource('invoices', InvoiceController::class);
     Route::apiResource('subscriptions', SubscriptionController::class);
+    // Route::post('/generate-invoices', [InvoiceController::class, 'generateInvoices']);
+    Route::post('/send-invoices', [InvoiceController::class, 'markAsSent']);
+
+    // Voeg deze regel toe voor het genereren van alle facturen voor klanten
+    Route::post('/generate-invoices', [InvoiceController::class, 'generateInvoices']);
+
+
+    Route::post('/customers/{id}/restore', 'App\Http\Controllers\CustomerController@restore');
+
+
+
 
     // Additional routes
     Route::get('/user', function (Request $request) {

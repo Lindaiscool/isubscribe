@@ -1,19 +1,18 @@
 <script>
-    // Initialize reactive variables for form fields
+    import toastr from "toastr";
+    import page from "page";
+
     let email = "";
     let password = "";
     let name = "";
     let password_confirmation = "";
-    import page from "page";
 
-    // Asynchronous function to handle user registration
     const register = async () => {
-        // Send a POST request to the registration API endpoint
         const response = await fetch("http://localhost:8000/api/register", {
             method: "POST",
             headers: {
-                "Content-Type": "application/json", // Set content type to JSON
-                Accept: "application/json", // Specify that the client expects JSON response
+                "Content-Type": "application/json",
+                Accept: "application/json",
             },
             body: JSON.stringify({
                 email,
@@ -22,32 +21,47 @@
                 password_confirmation,
             }),
         });
-        page("/login");
 
-        // Parse the JSON response from the server
-        const data = await response.json();
-        console.log(data); // Log the response data for debugging purposes
+        if (response.ok) {
+            // If the registration was successful, redirect to login page
+            page("/login");
+            toastr.success("Registration successful!", "Success");
+        } else {
+            // Handle errors
+            const responseData = await response.json();
+            if (responseData.errors) {
+                let message = "";
+                for (const [field, errors] of Object.entries(responseData.errors)) {
+                    message += `${field} - ${errors.join(", ")}. `;
+                }
+                toastr.error(message, "Registration Error");
+            } else {
+                toastr.error(responseData.message || "An error occurred during registration", "Registration Error");
+            }
+        }
     };
 </script>
 
-<h1 class="mb-5">Register</h1>
-<!-- Form for user registration, prevents default form submission to handle via JavaScript -->
-<form on:submit|preventDefault={register}>
-    <label for="email">Email</label>
-    <input type="email" id="email" bind:value={email} />
+<div class="min-h-96 flex flex-col items-center justify-center">
+    <h1 class="mb-5">Register</h1>
+    <form on:submit|preventDefault={register} class="w-full max-w-xs">
+        <!-- Form fields -->
+        <div class="mb-4">
+            <input type="email" bind:value={email} placeholder="Email" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+        </div>
+        <div class="mb-4">
+            <input type="text" bind:value={name} placeholder="Name" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+        </div>
+        <div class="mb-4">
+            <input type="password" bind:value={password} placeholder="Password" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+        </div>
+        <div class="mb-6">
+            <input type="password" bind:value={password_confirmation} placeholder="Password Confirmation" class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+        </div>
+        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300">Register</button>
+        <p class="mt-4 text-sm text-gray-600">
+            Already have an account? <a href="/login" class="text-blue-500 hover:text-blue-700">Login</a>
+        </p>
+    </form>
+</div>
 
-    <label for="name">Name</label>
-    <input type="text" id="name" bind:value={name} />
-
-    <label for="password">Password</label>
-    <input type="password" id="password" bind:value={password} />
-
-    <label for="password_confirmation">Password Confirmation</label>
-    <input
-        type="password"
-        id="password_confirmation"
-        bind:value={password_confirmation}
-    />
-
-    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300">Register</button>
-</form>

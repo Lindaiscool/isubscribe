@@ -15,8 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description');
-            $table->integer('price');
+            $table->decimal('price', 8, 2);
             $table->integer('vat');
+            $table->date('start_date');
+            $table->date('end_date');
             $table->timestamps();
         });
     }

@@ -1,168 +1,58 @@
 <script>
-    import { authToken, logout } from "../stores/auth.js"; // Importing authentication-related stores
-    import page from "page"; // Importing page for programmatic routing
+    import { authToken, logout } from "../stores/auth.js";
+    import page from "page";
+    import { writable } from "svelte/store";
 
-    let isMenuOpen = false; // Local state for tracking the visibility of the mobile menu
+    let isMenuOpen = writable(false);
 
-    // Function to toggle the mobile menu open/close state
     const toggleMenu = () => {
-        isMenuOpen = !isMenuOpen;
+        isMenuOpen.update((value) => !value);
     };
 </script>
 
-<nav>
-    <div class="container">
+<nav class="bg-neutral-900 top-0 left-0 w-full z-50 py-4">
+    <div class="container mx-auto flex items-center justify-between px-6">
         <!-- Burger Menu Button -->
-        <button class="burger" on:click={toggleMenu} aria-label="Toggle menu">
-            ☰ <!-- Unicode for the hamburger menu icon -->
-        </button>
+        <button class="block md:hidden text-2xl bg-transparent border-none cursor-pointer text-white" on:click={toggleMenu} aria-label="Toggle menu"> ☰ </button>
 
         <!-- Navbar Menu -->
-        <ul class="nav-links" class:is-open={isMenuOpen}>
-            <div class="brand">
-                <!-- Brand logo with a link to the home page -->
-                <a href="/"
-                    ><img
-                        src="/logo.png"
-                        alt="logo"
-                        width="40"
-                        height="30"
-                    /></a
-                >
+        <ul class="hidden md:flex gap-4 text-white">
+            <div class="font-bold">
+                <a href="/" class="flex items-center">
+                    <img src="/logo3.png" alt="logo" width="40" height="30" />
+                </a>
             </div>
-            <li>
-                <!-- Navigation link to Customers page -->
-                <a
-                    href="/customers"
-                    on:click|preventDefault={() => page("/customers")}
-                    >Customers</a
-                >
-            </li>
-            <li>
-                <!-- Navigation link to Invoices page -->
-                <a
-                    href="/invoices"
-                    on:click|preventDefault={() => page("/invoices")}
-                    >Invoices</a
-                >
-            </li>
-            <li>
-                <!-- Navigation link to Subscriptions page -->
-                <a
-                    href="/subscriptions"
-                    on:click|preventDefault={() => page("/subscriptions")}
-                    >Subscriptions</a
-                >
-            </li>
         </ul>
-        <ul class="nav-links" class:is-open={isMenuOpen}>
+        <ul class="hidden md:flex gap-4 text-white">
             {#if $authToken}
-                <!-- Conditional rendering based on authentication status -->
-                <li>
-                    <!-- Logout button -->
-                    <button on:click={logout}>Logout</button>
-                </li>
+                <li><a href="/customers" class="text-lg hover:text-indigo-500 transition duration-300" on:click|preventDefault={() => page("/customers")}> Customers</a></li>
+                <li><a href="/invoices" class="text-lg hover:text-indigo-500 transition duration-300" on:click|preventDefault={() => page("/invoices")}> Invoices</a></li>
+                <li><a href="/subscriptions" class="text-lg hover:text-indigo-500 transition duration-300" on:click|preventDefault={() => page("/subscriptions")}> Subscriptions</a></li>
+                <li><button class="text-lg text-neutral-100 hover:text-red-500" on:click={logout}>Logout</button></li>
             {:else}
-                <li>
-                    <!-- Link to the Login page -->
-                    <a
-                        href="/login"
-                        on:click|preventDefault={() => page("/login")}>Login</a
-                    >
-                </li>
-                <li>
-                    <!-- Link to the Registration page -->
-                    <a
-                        href="/register"
-                        on:click|preventDefault={() => page("/register")}
-                        >Register</a
-                    >
-                </li>
+                <li><a href="/login" class="text-lg text-neutral-100 hover:text-blue-400" on:click|preventDefault={() => page("/login")}> Login</a></li>
+                <li><a href="/register" class="text-lg text-neutral-100 hover:text-blue-400" on:click|preventDefault={() => page("/register")}> Register</a></li>
             {/if}
         </ul>
     </div>
 </nav>
 
-<style>
-    /* Navbar styling */
-    nav {
-        width: 100%;
-        background: #333;
-        color: white;
-        position: fixed;
-        top: 0;
-        left: 0;
-        z-index: 1000;
-        padding: 1rem 0;
-    }
-
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 1.5rem;
-    }
-
-    .brand a {
-        font-weight: bold;
-        color: white;
-        text-decoration: none;
-    }
-
-    /* Default menu styling */
-    .nav-links {
-        list-style: none;
-        display: flex;
-        gap: 1rem;
-        padding: 0;
-        margin: 0;
-    }
-
-    .nav-links a {
-        color: white;
-        text-decoration: none;
-    }
-
-    .nav-links a:hover {
-        text-decoration: underline;
-    }
-
-    /* Burger menu button styling */
-    .burger {
-        display: none;
-        font-size: 2rem;
-        background: none;
-        border: none;
-        color: white;
-        cursor: pointer;
-    }
-
-    /* Responsive styling: Make a burger menu under 428px */
-    @media (max-width: 428px) {
-        .burger {
-            display: block;
-        }
-
-        .nav-links {
-            display: none;
-            flex-direction: column;
-            position: absolute;
-            top: 70px;
-            left: 0;
-            width: 100%;
-            background: #333;
-            padding: 1rem;
-        }
-
-        .nav-links.is-open {
-            display: flex;
-        }
-
-        .nav-links li {
-            text-align: center;
-            padding: 0.5rem 0;
-        }
-    }
-</style>
+<!-- Responsive Mobile Menu -->
+{#if $isMenuOpen}
+    <ul class="md:hidden flex flex-col items-center bg-neutral-900 w-full absolute top-16 left-0 py-4 space-y-2 text-white">
+        <div class="font-bold">
+            <a href="/" class="flex items-center">
+                <img src="/logo3.png" alt="logo" width="40" height="30" />
+            </a>
+        </div>
+        {#if $authToken}
+            <li><a href="/customers" class="text-lg hover:text-indigo-500" on:click|preventDefault={() => page("/customers")}> Customers</a></li>
+            <li><a href="/invoices" class="text-lg hover:text-indigo-500" on:click|preventDefault={() => page("/invoices")}> Invoices</a></li>
+            <li><a href="/subscriptions" class="text-lg hover:text-indigo-500" on:click|preventDefault={() => page("/subscriptions")}> Subscriptions</a></li>
+            <li><button class="text-lg text-neutral-100 hover:text-red-500" on:click={logout}>Logout</button></li>
+        {:else}
+            <li><a href="/login" class="text-lg text-neutral-100 hover:text-blue-400" on:click|preventDefault={() => page("/login")}> Login</a></li>
+            <li><a href="/register" class="text-lg text-neutral-100 hover:text-blue-400" on:click|preventDefault={() => page("/register")}> Register</a></li>
+        {/if}
+    </ul>
+{/if}

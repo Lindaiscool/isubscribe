@@ -6,10 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Invoice;
 use App\Models\Subscription;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
 {
     use HasFactory;
+
+    use SoftDeletes;
 
     protected $fillable = ['name', 'email', 'street', 'house_number', 'postal_code', 'city'];
 

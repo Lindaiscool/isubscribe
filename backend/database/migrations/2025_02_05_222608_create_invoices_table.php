@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('customer_id')->constrained()->onDelete('cascade');
             $table->string('invoicenumber')->unique();
-            $table->date('invoicedate');
+            $table->date('invoicedate')->nullable();
+            $table->date('startdate')->nullable();
             $table->date('duedate');
             $table->date('sentdate')->nullable();
             $table->text('paymentterms');
