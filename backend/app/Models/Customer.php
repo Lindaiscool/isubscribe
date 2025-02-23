@@ -14,7 +14,7 @@ class Customer extends Model
 
     use SoftDeletes;
 
-    protected $fillable = ['name', 'email', 'street', 'house_number', 'postal_code', 'city'];
+    protected $fillable = ['name', 'email', 'street', 'house_number', 'postal_code', 'city', 'last_invoice_date'];
 
     public function invoices()
     {

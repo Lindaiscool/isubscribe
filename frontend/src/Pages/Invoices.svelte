@@ -241,7 +241,7 @@
                                     <span class="inline-block bg-indigo-800 text-indigo-200 px-2 py-1 rounded-full text-xs font-medium mr-1">{subscription.name}</span>
                                 {/each}
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-left text-gray-300">{new Date(invoice.invoicedate).toLocaleDateString()}</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-left text-gray-300">{new Date(invoice.startdate).toLocaleDateString()}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-left text-gray-300">{new Date(invoice.duedate).toLocaleDateString()}</td>
                         </tr>
                     {/each}
