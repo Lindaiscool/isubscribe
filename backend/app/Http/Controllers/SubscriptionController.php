@@ -51,6 +51,8 @@ class SubscriptionController extends Controller
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'vat' => 'required|numeric|min:0',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
         ]);
 
         // Create and save the new subscription.
@@ -59,6 +61,8 @@ class SubscriptionController extends Controller
         $subscription->description = $request->description;
         $subscription->price = $request->price;
         $subscription->vat = $request->vat;
+        $subscription->start_date = $request->start_date;
+        $subscription->end_date = $request->end_date;
         $subscription->save();
 
         // Return the newly created subscription data.
@@ -93,27 +97,33 @@ class SubscriptionController extends Controller
      * @param  string $id The ID of the subscription to update.
      * @return \Illuminate\Http\JsonResponse Returns the updated subscription as JSON with HTTP status 200.
      */
-    public function update(Request $request, string $id)
-    {
-        // Validate the incoming request data.
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'vat' => 'required|numeric|min:0',
-        ]);
+// Update de opgegeven subscription in de database.
+public function update(Request $request, string $id)
+{
+    // Valideer de inkomende verzoekgegevens.
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'price' => 'required|numeric|min:0',
+        'vat' => 'required|numeric|min:0',
+        'start_date' => 'nullable|date', // Controleer of start_date een geldige datum is
+        'end_date' => 'nullable|date',   // Controleer of end_date een geldige datum is
+    ]);
 
-        // Find the subscription by ID, update its properties, and save it.
-        $subscription = Subscription::find($id);
-        $subscription->name = $request->name;
-        $subscription->description = $request->description;
-        $subscription->price = $request->price;
-        $subscription->vat = $request->vat;
-        $subscription->save();
+    // Zoek de subscription op ID en werk de velden bij.
+    $subscription = Subscription::find($id);
+    $subscription->name = $request->name;
+    $subscription->description = $request->description;
+    $subscription->price = $request->price;
+    $subscription->vat = $request->vat;
+    $subscription->start_date = $request->start_date; // Werk start_date bij
+    $subscription->end_date = $request->end_date;     // Werk end_date bij
+    $subscription->save(); // Sla de gewijzigde subscription op
 
-        // Return the updated subscription data.
-        return response()->json($subscription, 200);
-    }
+    // Retourneer de bijgewerkte gegevens van de subscription.
+    return response()->json($subscription, 200);
+}
+
 
     /**
      * Remove the specified subscription from the database.

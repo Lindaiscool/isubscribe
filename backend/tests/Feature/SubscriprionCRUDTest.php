@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\Subscription;
 use App\Models\User;
@@ -14,7 +15,7 @@ beforeEach(function () {
 });
 
 // Test: Fetch all subscriptions and check if the correct number is returned
-it('haalt alle abonnementen op', function () {
+it('fetches all subscriptions', function () {
     // Make a GET request to the subscriptions API endpoint
     $response = $this->getJson('/api/subscriptions');
 
@@ -27,7 +28,7 @@ it('haalt alle abonnementen op', function () {
 });
 
 // Test: Fetch a specific subscription by ID and check if the correct name is returned
-it('haalt een specifiek abonnement op', function () {
+it('fetches a specific subscription', function () {
     // Create a subscription
     $subscription = Subscription::factory()->create();
 
@@ -40,7 +41,7 @@ it('haalt een specifiek abonnement op', function () {
 });
 
 // Test: Create a new subscription with valid data
-it('maakt een nieuw abonnement aan', function () {
+it('creates a new subscription', function () {
     // Generate valid subscription data
     $subscriptionData = Subscription::factory()->make()->toArray();
 
@@ -49,11 +50,11 @@ it('maakt een nieuw abonnement aan', function () {
 
     // Assert that the status is 201 (Created) and the subscription's name is in the response
     $response->assertStatus(201)
-             ->assertJsonFragment(['name' => $subscriptionData['name']]);
+        ->assertJsonFragment(['name' => $subscriptionData['name']]);
 });
 
 // Test: Update an existing subscription with new data
-it('werkt een bestaand abonnement bij', function () {
+it('updates an existing subscription', function () {
     // Create an existing subscription
     $subscription = Subscription::factory()->create();
     // Generate new data for the subscription
@@ -68,7 +69,7 @@ it('werkt een bestaand abonnement bij', function () {
 });
 
 // Test: Delete a subscription
-it('verwijdert een abonnement', function () {
+it('deletes a subscription', function () {
     // Create a subscription to be deleted
     $subscription = Subscription::factory()->create();
 
@@ -80,7 +81,7 @@ it('verwijdert een abonnement', function () {
 });
 
 // Test: Attempt to create a subscription with invalid data (e.g., missing name)
-it('geeft een foutmelding bij het aanmaken van een abonnement met ongeldige gegevens', function () {
+it('returns an error when creating a subscription with invalid data', function () {
     // Create invalid subscription data (missing name)
     $subscriptionData = Subscription::factory()->make(['name' => null])->toArray();
 
@@ -93,7 +94,7 @@ it('geeft een foutmelding bij het aanmaken van een abonnement met ongeldige gege
 });
 
 // Test: Attempt to update a subscription with invalid data (e.g., missing name)
-it('geeft een foutmelding bij het bijwerken van een abonnement met ongeldige gegevens', function () {
+it('returns an error when updating a subscription with invalid data', function () {
     // Create an existing subscription
     $subscription = Subscription::factory()->create();
     // Generate new invalid data for the subscription (missing name)
@@ -108,7 +109,7 @@ it('geeft een foutmelding bij het bijwerken van een abonnement met ongeldige geg
 });
 
 // Test: Attempt to delete a non-existing subscription
-it('geeft een foutmelding bij het verwijderen van een onbekend abonnement', function () {
+it('returns an error when deleting an unknown subscription', function () {
     // Make a DELETE request for a non-existing subscription (ID 999)
     $response = $this->deleteJson('/api/subscriptions/999');
 

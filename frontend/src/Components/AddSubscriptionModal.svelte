@@ -16,6 +16,8 @@
     let description = "";
     let price = 0;
     let vat = 0;
+    let start_date = "";
+    let end_date = "";
 
     // Handle form submission to create a new subscription
     async function handleSubmit(event) {
@@ -27,6 +29,8 @@
             description,
             price,
             vat,
+            start_date,
+            end_date,
         };
 
         // Send the subscription data to the backend via a POST request
@@ -87,6 +91,18 @@
                 <div>
                     <label for="vat" class="block text-sm font-medium text-gray-700">VAT (%)</label>
                     <input type="number" id="vat" bind:value={vat} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md" required />
+                </div>
+
+                <!-- Start date input field -->
+                <div>
+                    <label for="start_date" class="block text-sm font-medium text-gray-700">Start Date</label>
+                    <input type="date" id="start_date" bind:value={start_date} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md" required />
+                </div>
+
+                <!-- End date input field -->
+                <div>
+                    <label for="end_date" class="block text-sm font-medium text-gray-700">End Date</label>
+                    <input type="date" id="end_date" bind:value={end_date} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md" required />
                 </div>
 
                 <!-- Buttons to either cancel or submit the form -->

@@ -13,14 +13,13 @@ beforeEach(function () {
 });
 
 // Test: Register a new user
-// Test: Register a new user
-it('registreert een nieuwe gebruiker', function () {
+it('registers a new user', function () {
     // Data for the new user to be registered
     $userData = [
         'name' => 'Test User',
         'email' => 'test@example.com',
-        'password' => 'Password123!', // Wachtwoord dat voldoet aan de validatieregels
-        'password_confirmation' => 'Password123!' // Wachtwoordbevestiging
+        'password' => 'Password123!', // Password that meets validation rules
+        'password_confirmation' => 'Password123!' // Password confirmation
     ];
 
     // Make a POST request to the registration API endpoint with the user data
@@ -39,7 +38,7 @@ it('registreert een nieuwe gebruiker', function () {
 
 
 // Test: Log in a user
-it('logt een gebruiker in', function () {
+it('logs a user in', function () {
     // Create a user with a hashed password
     $user = User::factory()->create([
         'email' => 'test@example.com',
@@ -58,7 +57,7 @@ it('logt een gebruiker in', function () {
 });
 
 // Test: Log out a user
-it('logt een gebruiker uit', function () {
+it('logs a user out', function () {
     // Create a user and generate a token for authentication
     $user = User::factory()->create();
     $token = $user->createToken('authToken')->plainTextToken;
@@ -84,11 +83,11 @@ it('logt een gebruiker uit', function () {
     ]);
 
     // Assert that the user is logged out by checking if the authentication guard is not active
-    $this->assertFalse(Auth::guard('web')->check(), "De gebruiker is nog steeds ingelogd!"); // Assert the user is not logged in
+    $this->assertFalse(Auth::guard('web')->check(), "The user is still logged in!"); // Assert the user is not logged in
 });
 
 // Test: Fail on incorrect login attempt
-it('faalt bij incorrecte loginpoging', function () {
+it('fails on incorrect login attempt', function () {
     // Create a user with a correct password
     $user = User::factory()->create([
         'password' => Hash::make('correctpassword') // Store a hashed password

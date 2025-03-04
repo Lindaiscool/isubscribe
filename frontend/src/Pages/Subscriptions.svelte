@@ -97,7 +97,7 @@
 
     // Edit Subscription Modal functionality
     let showEditModal = false; // Controls visibility of the Edit Subscription Modal
-    let editSubscription = { id: "", name: "", description: "", price: 0, vat: 0 }; // Stores the subscription to edit
+    let editSubscription = { id: "", name: "", description: "", price: 0, vat: 0, start_date: "", end_date: "" }; // Stores the subscription to edit
 
     // Open the edit modal and populate it with the selected subscription's data
     function openEditModal(subscription) {
@@ -184,6 +184,8 @@
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider cursor-pointer hidden sm:table-cell" on:click={() => sortData("description")}> Description </th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider cursor-pointer hidden sm:table-cell" on:click={() => sortData("price")}> Price (€) </th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider cursor-pointer hidden sm:table-cell" on:click={() => sortData("vat")}> VAT (%) </th>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider cursor-pointer hidden sm:table-cell" on:click={() => sortData("start_date")}> Start Date </th>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider cursor-pointer hidden sm:table-cell" on:click={() => sortData("end_date")}> End Date </th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
@@ -194,6 +196,8 @@
                             <td class="px-4 py-4 whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{subscription.description}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">€{new Intl.NumberFormat('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(subscription.price)}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{subscription.vat}%</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{subscription.start_date}</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{subscription.end_date}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-base text-gray-300">
                                 <button class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition duration-300" on:click={() => openEditModal(subscription)}>Edit</button>
                                 <button class="ml-2 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition duration-300" on:click={() => deleteSubscription(subscription)}>Delete</button>

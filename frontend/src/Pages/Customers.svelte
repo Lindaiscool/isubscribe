@@ -169,7 +169,7 @@
         }
     }
 
-    // Functie om klanten te archiveren
+    // Function to archive a customer
     async function archiveCustomer(customer) {
         if (confirm("Are you sure you want to archive this customer?")) {
             const response = await fetch(`http://localhost:8000/api/customers/${customer.id}`, {
@@ -188,7 +188,7 @@
         }
     }
 
-    // Functie om klanten te herstellen
+    // Function to restore a customer
 
     async function restoreCustomer(customer) {
     if (confirm("Are you sure you want to restore this customer?")) {

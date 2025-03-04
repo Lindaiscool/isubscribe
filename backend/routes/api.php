@@ -31,13 +31,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/customers/{id}/restore', 'App\Http\Controllers\CustomerController@restore');
 
-
-
-
     // Additional routes
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
+    Route::post('/invoices/mark-all-as-sent', 'App\Http\Controllers\InvoiceController@markAllInvoicesAsSent');
+
 });
 
 // Utility routes

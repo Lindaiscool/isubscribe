@@ -7,124 +7,147 @@ use App\Models\Invoice;
 use App\Models\Customer;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
 
 class InvoiceController extends Controller
 {
-    // Haal alle facturen op met actieve abonnementen
+    /**
+     * Retrieves all invoices with active subscriptions within the current date range.
+     *
+     * @return \Illuminate\Http\JsonResponse Returns the invoices as JSON.
+     */
     public function index()
     {
-        $today = Carbon::today();
+        $today = Carbon::today(); // Set today's date
         $invoices = Invoice::with(['customer.subscriptions' => function ($query) use ($today) {
-            $query->where('start_date', '<=', $today)
-                ->where('end_date', '>=', $today);
-        }])->get();
+            $query->where('start_date', '<=', $today) // Filter active subscriptions that start on or before today
+                ->where('end_date', '>=', $today); // and end on or after today
+        }])
+            ->whereHas('customer.subscriptions', function ($query) use ($today) {
+                $query->where('start_date', '<=', $today) // Further ensure that only invoices with valid subscriptions are retrieved
+                    ->where('end_date', '>=', $today);
+            })
+            ->get();
 
         return response()->json($invoices);
     }
 
-    // Genereer nieuwe facturen voor klanten met actieve abonnementen
-// Genereer nieuwe facturen voor klanten met actieve abonnementen
-public function generateInvoices()
-{
-    // Log de inkomende aanvraag om te zien of er iets misgaat
-    Log::debug('Generate invoices request', ['request_data' => request()->all()]);
+    /**
+     * Generates new invoices for customers with active subscriptions.
+     *
+     * Checks if invoices have already been generated for this month, generates invoices if not.
+     *
+     * @return \Illuminate\Http\JsonResponse Returns a message indicating the outcome.
+     */
+    public function generateInvoices()
+    {
+        $hasGeneratedInvoicesThisMonth = $this->checkIfInvoicesGeneratedForThisMonth(); // Check if invoices have been generated this month
 
-    $today = Carbon::today();
-    $currentMonth = $today->format('Y-m');  // Verkrijg de huidige maand en jaar (bijv. '2023-04')
-
-    // Haal klanten op met actieve abonnementen of abonnementen die binnenkort starten
-    $customers = Customer::whereHas('subscriptions', function ($query) use ($today, $currentMonth) {
-        $query->where('start_date', '<=', $today)
-              ->where('end_date', '>=', $today);
-    })->orWhereHas('subscriptions', function ($query) use ($today) {
-        $query->where('start_date', '>', $today); // Abonnementen die in de toekomst beginnen
-    })
-    ->with(['subscriptions' => function ($query) use ($today) {
-        $query->where('start_date', '<=', $today)
-              ->where('end_date', '>=', $today);
-    }])
-    ->get();
-
-    if ($customers->isEmpty()) {
-        return response()->json(['error' => 'Geen klanten met actieve abonnementen'], 400);
-    }
-
-    Log::info("Facturen worden gegenereerd...");
-
-    $invoicesGenerated = 0; // Houd bij hoeveel facturen zijn gegenereerd
-    $message = ''; // Berichten voor de frontend
-
-    foreach ($customers as $customer) {
-        if ($customer->subscriptions->isEmpty()) {
-            continue; // Sla klanten over die geen actieve abonnementen hebben binnen de huidige datums
+        if ($hasGeneratedInvoicesThisMonth) { // If invoices have already been generated, return a message to avoid duplication
+            return response()->json(['message' => 'Invoices have already been generated for this month.'], 400);
         }
 
-        // Check of de klant al een factuur heeft voor de huidige maand
-        $lastInvoiceDate = $customer->last_invoice_date ? Carbon::parse($customer->last_invoice_date) : null;
+        $today = Carbon::today();
 
-        // Als de klant nog geen factuur heeft of de laatste factuur niet in de huidige maand is, maak dan een nieuwe factuur
-        if (!$lastInvoiceDate || $lastInvoiceDate->month != $today->month) {
-            foreach ($customer->subscriptions as $subscription) {
-                // Maak de factuur aan voor de klant
-                $invoice = Invoice::create([
-                    'customer_id' => $customer->id,
-                    'invoicenumber' => $this->generateUniqueInvoiceNumber(),
-                    'invoicedate' => $today, // Zet de huidige datum als invoicedate
-                    'startdate' => $today->copy()->startOfMonth(), // Eerste dag van de maand
-                    'duedate' => $today->copy()->endOfMonth(), // Laatste dag van de maand
-                    'paymentterms' => 'Betaal binnen 30 dagen na factuurdatum.',
-                    'sent' => false,
-                    'subscription_name' => $subscription->name,
-                    'price' => $subscription->price, // Gebruik prijs van het abonnement
-                    'vat' => $subscription->vat,     // Gebruik VAT van het abonnement
-                ]);
+        $customers = Customer::whereHas('subscriptions', function ($query) use ($today) {
+            $query->where('start_date', '<=', $today)
+                ->where('end_date', '>=', $today);
+        })->get();
 
-                // Update de klant met de laatste factuurdatum
-                $customer->last_invoice_date = $today;
-                $customer->save();
+        if ($customers->isEmpty()) { // If no customers with active subscriptions are found, return an error message
+            return response()->json(['error' => 'No customers with active subscriptions'], 400);
+        }
 
-                $invoicesGenerated++; // Verhoog de teller voor gegenereerde facturen
+        $invoicesGenerated = 0; // Counter for the number of invoices generated
+
+        foreach ($customers as $customer) {
+            $lastInvoiceDate = $customer->last_invoice_date ? Carbon::parse($customer->last_invoice_date) : null;
+
+            if (!$lastInvoiceDate || $lastInvoiceDate->month != $today->month) { // Generate an invoice if none exist for this month
+                foreach ($customer->subscriptions as $subscription) {
+                    $existingInvoice = Invoice::where('customer_id', $customer->id)
+                        ->whereMonth('invoicedate', $today->month)
+                        ->first();
+
+                    if (!$existingInvoice) { // If no invoice exists for this month, create a new one
+                        Invoice::create([
+                            'customer_id' => $customer->id,
+                            'invoicenumber' => $this->generateUniqueInvoiceNumber(),
+                            'invoicedate' => $today,
+                            'startdate' => $today->copy()->startOfMonth(),
+                            'duedate' => $today->copy()->endOfMonth(),
+                            'paymentterms' => 'Pay within 30 days of the invoice date.',
+                            'sent' => false,
+                            'subscription_name' => $subscription->name,
+                            'price' => $subscription->price,
+                            'vat' => $subscription->vat,
+                        ]);
+
+                        $customer->last_invoice_date = $today; // Update the last invoice date for the customer
+                        $customer->save(); // Save the customer record with the updated last invoice date
+
+                        $invoicesGenerated++;
+                    }
+                }
             }
+        }
+
+        if ($invoicesGenerated > 0) {
+            return response()->json(['message' => 'Invoices generated successfully!', 'invoices_generated' => $invoicesGenerated]);
         } else {
-            $message = 'Facturen zijn al gegenereerd voor deze maand.'; // Update het bericht
-            Log::info('Klant heeft al een factuur voor deze maand: klant ' . $customer->id);
+            return response()->json(['message' => 'No new invoices generated.']);
         }
     }
 
-    if ($invoicesGenerated > 0) {
-        return response()->json(['message' => 'Facturen succesvol gegenereerd!', 'invoices_generated' => $invoicesGenerated]);
-    } else {
-        return response()->json(['message' => $message ? $message : 'Geen nieuwe facturen gegenereerd. Alle klanten hebben al een factuur voor deze maand.']);
+    /**
+     * Checks whether invoices have been generated for the current month.
+     *
+     * @return bool Returns true if invoices have been generated, false otherwise.
+     */
+    private function checkIfInvoicesGeneratedForThisMonth()
+    {
+        return Invoice::whereMonth('invoicedate', Carbon::today()->month)->exists(); // Check the database for any invoices dated this month
     }
-}
 
-
-
-
-
-
-
-    // Markeer facturen als verzonden
+    /**
+     * Marks selected invoices as sent based on input IDs.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse Returns a success message.
+     */
     public function markAsSent(Request $request)
     {
-        $invoiceIds = $request->input('invoice_ids', []);
+        $invoiceIds = $request->input('invoice_ids', []); // Retrieve invoice IDs from the request
 
         Invoice::whereIn('id', $invoiceIds)->update([
             'sent' => true,
-            'sentdate' => now()
+            'sentdate' => now() // Mark the invoice as sent and set the sent date to now
         ]);
 
-        return response()->json(['message' => 'Facturen verzonden!']);
+        return response()->json(['message' => 'Invoices marked as sent!']);
     }
 
-    // Genereer een uniek factuurnummer
+    /**
+     * Generates a unique invoice number using a random string.
+     *
+     * @return string Returns a unique invoice number.
+     */
     private function generateUniqueInvoiceNumber()
     {
         do {
-            $invoiceNumber = Str::random(15);
-        } while (Invoice::where('invoicenumber', $invoiceNumber)->exists());
+            $invoiceNumber = Str::random(15); // Generate a random 15-character string
+        } while (Invoice::where('invoicenumber', $invoiceNumber)->exists()); // Ensure the generated number is unique
 
         return $invoiceNumber;
+    }
+
+    /**
+     * Removes invoices that do not have associated subscriptions.
+     *
+     * @return \Illuminate\Http\JsonResponse Returns a message confirming the deletion of such invoices.
+     */
+    public function removeInvoicesWithoutSubscriptions()
+    {
+        Invoice::whereDoesntHave('customer.subscriptions')->delete(); // Deletes invoices that have no linked subscriptions
+        return response()->json(['message' => 'Invoices without subscriptions have been deleted.']);
     }
 }

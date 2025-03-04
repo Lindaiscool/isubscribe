@@ -14,6 +14,7 @@
     let currentPage = writable(1);
     const itemsPerPage = 10;
     let hasGeneratedInvoicesThisMonth = writable(false); // Voeg een store toe om bij te houden of facturen zijn gegenereerd voor deze maand
+    let selectedInvoiceIds = writable([]);
 
     // Herstel de status van 'isGenerating' en 'isGenerated' bij het laden van de pagina
     onMount(() => {
@@ -23,7 +24,29 @@
             isGenerated.set(true);
         }
         fetchData();
+        fetchSubscriptions();
     });
+
+    // Functie om abonnementen op te halen
+    const fetchSubscriptions = async () => {
+        try {
+            const subResponse = await fetch("http://localhost:8000/api/subscriptions", {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: "Bearer " + $authToken,
+                    Accept: "application/json",
+                },
+            });
+            if (subResponse.ok) {
+                const subData = await subResponse.json();
+                subscriptions.set(subData);
+            } else {
+                throw new Error(`API fout: ${subResponse.statusText}`);
+            }
+        } catch (error) {
+            console.error("Fout bij het ophalen van abonnementen:", error);
+        }
+    };
 
     // Functie om facturen en abonnementen opnieuw op te halen
     const fetchData = async () => {
@@ -61,14 +84,22 @@
 
     // Functie om nieuwe facturen te genereren
     const generateAllInvoices = async () => {
+        // Controleer of facturen al zijn gegenereerd voor deze maand
+        if ($hasGeneratedInvoicesThisMonth) {
+            toastr.info("Facturen zijn al gegenereerd voor deze maand.");
+            return; // Stop de functie als facturen al zijn gegenereerd
+        }
+
         isGenerating.set(true);
         localStorage.setItem("isGenerating", "true"); // Sla de status op in localStorage
+
         try {
+            // Verstuur de verzoek naar de backend om facturen te genereren
             const response = await fetch("http://localhost:8000/api/generate-invoices", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: "Bearer " + $authToken, // Zorg ervoor dat je het juiste token gebruikt
+                    Authorization: "Bearer " + $authToken,
                 },
             });
 
@@ -78,62 +109,21 @@
 
             const responseData = await response.json();
 
-            // Als facturen al zijn gegenereerd, toon dan een waarschuwing, anders een succesmelding
-            if (responseData.message && responseData.message.includes("Facturen zijn al gegenereerd")) {
-                toastr.warning(responseData.message); // Toont een waarschuwing als facturen al bestaan
-            } else {
-                toastr.success(responseData.message); // Successmelding als facturen succesvol zijn gegenereerd
+            // Melding van succes of mislukking
+            if (responseData.message) {
+                toastr.success(responseData.message);
             }
 
-            // Werk de status bij
+            // Werk de status bij en zet de flag naar true
+            if (responseData.message.includes("Facturen succesvol gegenereerd")) {
+                hasGeneratedInvoicesThisMonth.set(true); // Zet de status naar true omdat de facturen nu zijn gegenereerd
+            }
+
             isGenerated.set(true);
-            localStorage.setItem("isGenerated", "true"); // Markeer als verzonden
-            hasGeneratedInvoicesThisMonth.set(true); // Zet de status naar true omdat de facturen nu zijn gegenereerd
+            localStorage.setItem("isGenerated", "true");
         } catch (error) {
-            console.error("Er is een fout opgetreden bij het genereren van de facturen:", error);
-            toastr.error("Er is een fout opgetreden bij het genereren van de facturen."); // Foutmelding
-        } finally {
-            isGenerating.set(false);
-            localStorage.removeItem("isGenerating"); // Verwijder de status na afronden
-        }
-    };
-
-    // Functie om facturen bij te werken
-    // Functie om facturen bij te werken
-    const updateAllInvoices = async () => {
-        isGenerating.set(true);
-        localStorage.setItem("isGenerating", "true");
-        try {
-            // Markeer alle niet-verzonden facturen als verzonden
-            const unsentInvoices = $invoices.filter((invoice) => !invoice.sent);
-
-            if (unsentInvoices.length > 0) {
-                // Haal de facturen die niet verzonden zijn en update de status naar verzonden
-                const response = await fetch("http://localhost:8000/api/send-invoices", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: "Bearer " + $authToken,
-                    },
-                    body: JSON.stringify({
-                        invoice_ids: unsentInvoices.map((invoice) => invoice.id),
-                    }),
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Fout bij het verzenden van facturen: ${response.statusText}`);
-                }
-
-                // Facturen zijn nu verzonden
-                alert("De facturen zijn succesvol bijgewerkt!");
-                isGenerated.set(true); // Markeer dat de facturen zijn bijgewerkt
-                localStorage.setItem("isGenerated", "true");
-            } else {
-                alert("Er zijn geen facturen om bij te werken.");
-            }
-        } catch (error) {
-            console.error("Er is een fout opgetreden bij het bijwerken van de facturen:", error);
-            alert("Er is een fout opgetreden bij het bijwerken van de facturen.");
+            console.error("Er is een fout opgetreden:", error);
+            toastr.error("Er is een fout opgetreden bij het genereren van de facturen.");
         } finally {
             isGenerating.set(false);
             localStorage.removeItem("isGenerating");
@@ -178,6 +168,33 @@
         const t = get(totalPages);
         currentPage.update((n) => Math.min(n + 1, t));
     }
+
+// Functie om geselecteerde facturen als verzonden te markeren
+// Functie om alle facturen als verzonden te markeren
+const markAllInvoicesAsSent = async () => {
+    try {
+        const response = await fetch("http://localhost:8000/api/invoices/mark-all-as-sent", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${$authToken}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`API fout: ${response.statusText}`);
+        }
+
+        const responseData = await response.json();
+        toastr.success(responseData.message);
+        fetchData();  // Herlaad de facturen om de wijzigingen te weerspiegelen
+    } catch (error) {
+        console.error("Fout bij het markeren van alle facturen als verzonden:", error);
+        toastr.error("Er is een fout opgetreden bij het markeren van de facturen.");
+    }
+};
+
+
 </script>
 
 <div class="mb-4">
@@ -188,12 +205,16 @@
         <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300 mt-10 mb-4" on:click={generateAllInvoices} disabled={$isGenerating}>
             {$hasGeneratedInvoicesThisMonth ? "Update" : "Genereer Alle Facturen"}
         </button>
-    {/if}
+        <!-- Make Definite Button -->
+        <button class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-700 transition duration-300" on:click={markAllInvoicesAsSent}>
+            Mark All as Definite
+        </button>
+            {/if}
 </div>
 
 <div class="w-full mx-auto max-w-7xl">
     <div class="bg-neutral-900 shadow rounded-lg p-6">
-        <h1 class="text-2xl font-semibold text-white mb-6">Customer Management</h1>
+        <h1 class="text-2xl font-semibold text-white mb-6">Invoices</h1>
 
         <!-- Search and subscription filter controls -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

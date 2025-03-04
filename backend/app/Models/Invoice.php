@@ -9,7 +9,7 @@ use App\Models\Customer;
 class Invoice extends Model
 {
     use HasFactory;
-    protected $fillable = ['customer_id','invoicenumber','invoicedate','duedate','sentdate','sent','paymentterms','startdate'];
+    protected $fillable = ['customer_id','invoicenumber','invoicedate','duedate','sentdate','sent','paymentterms','startdate', 'sent'];
 
     public function customer()
     {

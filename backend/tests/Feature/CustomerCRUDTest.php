@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\Customer;
 use App\Models\User;
@@ -21,7 +22,7 @@ beforeEach(function () {
 });
 
 // Test: Fetch all customers and check if the correct number is returned
-it('haalt alle klanten op', function () {
+it('fetches all customers', function () {
     // Create 3 customers
     $customers = Customer::factory()->count(3)->create();
 
@@ -34,7 +35,7 @@ it('haalt alle klanten op', function () {
 });
 
 // Test: Fetch a specific customer by ID and check if the correct name is returned
-it('haalt een specifieke klant op', function () {
+it('fetches a specific customer', function () {
     // Create a single customer
     $customer = Customer::factory()->create();
 
@@ -47,7 +48,7 @@ it('haalt een specifieke klant op', function () {
 });
 
 // Test: Create a new customer with valid data
-it('maakt een nieuwe klant aan', function () {
+it('creates a new customer', function () {
     // Generate valid customer data
     $customerData = Customer::factory()->make()->toArray();
     // Attach existing subscription IDs to the customer
@@ -58,11 +59,11 @@ it('maakt een nieuwe klant aan', function () {
 
     // Assert that the status is 201 (Created) and the customer's name is in the response
     $response->assertStatus(201)
-             ->assertJsonFragment(['name' => $customerData['name']]);
+        ->assertJsonFragment(['name' => $customerData['name']]);
 });
 
 // Test: Update an existing customer with new data
-it('werkt een bestaande klant bij', function () {
+it('updates an existing customer', function () {
     // Create an existing customer
     $customer = Customer::factory()->create();
     // Generate new data for the customer
@@ -78,20 +79,60 @@ it('werkt een bestaande klant bij', function () {
         ->assertJsonFragment(['name' => $newData['name']]);
 });
 
-// Test: Delete a customer
-it('verwijdert een klant', function () {
-    // Create a customer to be deleted
+it('should archive a customer', function () {
     $customer = Customer::factory()->create();
+    $this->assertDatabaseHas('customers', ['id' => $customer->id]);
 
-    // Make a DELETE request to remove the customer
     $response = $this->deleteJson("/api/customers/{$customer->id}");
 
-    // Assert that the status is 204 (No Content) indicating successful deletion
+    // Check if the response status is 204 (No Content)
     $response->assertStatus(204);
+
+    // Verify that the customer is archived
+    $archivedCustomer = Customer::withTrashed()->find($customer->id);
+    $this->assertNotNull($archivedCustomer->deleted_at);
+});
+
+// Test: Restore a soft-deleted customer
+it('should restore a soft-deleted customer', function () {
+    // Create a customer using a factory and archive it (soft delete)
+    $customer = Customer::factory()->create();
+    $customer->deleted_at = now()->subYear(); // Set the deleted_at date
+    $customer->save();
+
+    // Ensure that the customer is archived
+    expect($customer->deleted_at)->not()->toBeNull();
+
+    // Restore the customer
+    $response = $this->postJson("/api/customers/{$customer->id}/restore");
+
+    // Assert that the status is 200
+    $response->assertStatus(200);
+
+    // Check if the customer is restored
+    $customer->refresh();
+    expect($customer->deleted_at)->toBeNull(); // The customer should now be restored
+});
+
+// Test: Delete a customer after 1 year of archiving
+it('should delete customer after 1 year of archiving', function () {
+    // Create a customer using a factory
+    $customer = Customer::factory()->create([
+        'deleted_at' => now()->subYear()->subDay()  // Set the deleted_at date to more than a year ago
+    ]);
+
+    // Perform the deletion as if done by the scheduled query
+    Customer::where('id', $customer->id)->where('deleted_at', '<=', now()->subYear())->delete();
+
+    // Reload the customer from the database to see if it still exists
+    $deletedCustomer = Customer::find($customer->id);
+
+    // Check if the customer no longer exists in the database
+    expect($deletedCustomer)->toBeNull();
 });
 
 // Test: Attempt to create a customer with invalid data (e.g., invalid email)
-it('geeft een foutmelding bij het aanmaken van een klant met ongeldige gegevens', function () {
+it('returns an error when creating a customer with invalid data', function () {
     // Create invalid customer data (invalid email)
     $customerData = Customer::factory()->make(['email' => 'invalid-email'])->toArray();
 
@@ -104,7 +145,7 @@ it('geeft een foutmelding bij het aanmaken van een klant met ongeldige gegevens'
 });
 
 // Test: Attempt to update a customer with invalid data (e.g., invalid email)
-it('geeft een foutmelding bij het bijwerken van een klant met ongeldige gegevens', function () {
+it('returns an error when updating a customer with invalid data', function () {
     // Create an existing customer
     $customer = Customer::factory()->create();
     // Generate new invalid data for the customer (invalid email)
@@ -119,10 +160,13 @@ it('geeft een foutmelding bij het bijwerken van een klant met ongeldige gegevens
 });
 
 // Test: Attempt to delete a non-existing customer
-it('geeft een foutmelding bij het verwijderen van een onbekende klant', function () {
-    // Make a DELETE request for a non-existing customer (ID 999)
+it('returns an error when deleting an unknown customer', function () {
+    // Maak een DELETE-aanvraag voor een klant die niet bestaat (bijv. ID 999)
     $response = $this->deleteJson('/api/customers/999');
 
-    // Assert that the status is 500 (Internal Server Error)
-    $response->assertStatus(500); // Expect an error since the customer doesn't exist
+    // Assert dat de status een 404 is (klant niet gevonden)
+    $response->assertStatus(404)
+        ->assertJson([
+            'message' => 'Customer not found'
+        ]);
 });
