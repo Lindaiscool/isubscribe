@@ -19,48 +19,42 @@
     });
 
     // Filter and sort invoices
-    const filteredAndSortedInvoices = derived(
-        [filteredInvoices, searchTerm, sortOrder, sortColumn],
-        ([$filteredInvoices, $searchTerm, $sortOrder, $sortColumn]) => {
-            const searchTermLower = $searchTerm.toLowerCase();
-            const filtered = $filteredInvoices.filter((invoice) => {
-                const idMatch = invoice.id.toString().toLowerCase().includes(searchTermLower);
-                const customerMatch = invoice.customer && invoice.customer.name && invoice.customer.name.toLowerCase().includes(searchTermLower);
-                return (idMatch || customerMatch) && (!selectedInvoices || invoice.id === selectedInvoices);
-            });
+    const filteredAndSortedInvoices = derived([filteredInvoices, searchTerm, sortOrder, sortColumn], ([$filteredInvoices, $searchTerm, $sortOrder, $sortColumn]) => {
+        const searchTermLower = $searchTerm.toLowerCase();
+        const filtered = $filteredInvoices.filter((invoice) => {
+            const idMatch = invoice.id.toString().toLowerCase().includes(searchTermLower);
+            const customerMatch = invoice.customer && invoice.customer.name && invoice.customer.name.toLowerCase().includes(searchTermLower);
+            return (idMatch || customerMatch) && (!selectedInvoices || invoice.id === selectedInvoices);
+        });
 
-            // Sorting logic
-            const sorted = filtered.sort((a, b) => {
-    if (!$sortColumn) return 0;
-    const dir = $sortOrder === "asc" ? 1 : -1;
-    let aValue, bValue;
+        // Sorting logic
+        const sorted = filtered.sort((a, b) => {
+            if (!$sortColumn) return 0;
+            const dir = $sortOrder === "asc" ? 1 : -1;
+            let aValue, bValue;
 
-    if ($sortColumn === "id") {
-        aValue = parseInt(a.id, 10); // Convert to integer for numeric comparison
-        bValue = parseInt(b.id, 10); // Convert to integer for numeric comparison
-    } else if ($sortColumn === "customer") {
-        aValue = a.customer && a.customer.name ? a.customer.name.toLowerCase() : "";
-        bValue = b.customer && b.customer.name ? b.customer.name.toLowerCase() : "";
-    } else {
-        aValue = a[$sortColumn] ? a[$sortColumn].toString().toLowerCase() : "";
-        bValue = b[$sortColumn] ? b[$sortColumn].toString().toLowerCase() : "";
-    }
+            if ($sortColumn === "id") {
+                aValue = parseInt(a.id, 10); // Convert to integer for numeric comparison
+                bValue = parseInt(b.id, 10); // Convert to integer for numeric comparison
+            } else if ($sortColumn === "customer") {
+                aValue = a.customer && a.customer.name ? a.customer.name.toLowerCase() : "";
+                bValue = b.customer && b.customer.name ? b.customer.name.toLowerCase() : "";
+            } else {
+                aValue = a[$sortColumn] ? a[$sortColumn].toString().toLowerCase() : "";
+                bValue = b[$sortColumn] ? b[$sortColumn].toString().toLowerCase() : "";
+            }
 
-    return aValue > bValue ? dir : aValue < bValue ? -dir : 0;
-});
+            return aValue > bValue ? dir : aValue < bValue ? -dir : 0;
+        });
 
-            return sorted;
-        }
-    );
+        return sorted;
+    });
 
     // Derived store for paginated invoices
-    const paginatedInvoices = derived(
-        [filteredAndSortedInvoices, currentPage],
-        ([$filteredAndSortedInvoices, $currentPage]) => {
-            const startIndex = ($currentPage - 1) * per_page;
-            return Array.isArray($filteredAndSortedInvoices) ? $filteredAndSortedInvoices.slice(startIndex, startIndex + per_page) : [];
-        }
-    );
+    const paginatedInvoices = derived([filteredAndSortedInvoices, currentPage], ([$filteredAndSortedInvoices, $currentPage]) => {
+        const startIndex = ($currentPage - 1) * per_page;
+        return Array.isArray($filteredAndSortedInvoices) ? $filteredAndSortedInvoices.slice(startIndex, startIndex + per_page) : [];
+    });
 
     // Derived store for page count
     const pages = derived(filteredAndSortedInvoices, ($filteredAndSortedInvoices) => {
@@ -74,9 +68,11 @@
         if (term === "") {
             filteredInvoices.set(invoices);
         } else {
-            filteredInvoices.set(invoices.filter((inv) => {
-                return inv.id.toString().includes(term) || inv.customer_id.toString().includes(term);
-            }));
+            filteredInvoices.set(
+                invoices.filter((inv) => {
+                    return inv.id.toString().includes(term) || inv.customer_id.toString().includes(term);
+                })
+            );
         }
 
         // Reset currentPage to 1 when search changes to avoid out-of-bounds pages
@@ -116,7 +112,12 @@
                     {#each $paginatedInvoices as inv}
                         <tr>
                             <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{inv?.id}</td>
-                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{inv?.customer?.name}</td>
+                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">
+                                <a href={"http://localhost:8000/invoice/" + inv.id + "/pdf"} target="_blank" class="underline hover:text-blue-400">
+                                    {inv.customer.name || "No customer"}
+                                </a>
+                            </td>
+
                             <td class="px-4 py-4 text-left whitespace-nowrap text-left">
                                 {#if inv.sent}
                                     {#if inv.subscriptions_snapshot}

@@ -171,7 +171,12 @@
                     {#each $paginatedInvoices as inv}
                         <tr>
                             <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{inv.id}</td>
-                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{inv.customer.name || "No customer"}</td>
+                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">
+                                <a href={"http://localhost:8000/invoice/" + inv.id + "/pdf"} target="_blank" class="underline hover:text-blue-400">
+                                    {inv.customer.name || "No customer"}
+                                </a>
+                            </td>
+
                             <td class="px-4 py-4 text-left whitespace-nowrap text-left">
                                 {#each inv.customer.subscriptions as subscription}
                                     <span class="inline-block bg-indigo-800 text-indigo-200 px-2 py-1 rounded-full text-xs font-medium mr-1">{subscription.name}</span>

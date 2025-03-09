@@ -25,7 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::post('/generate-invoices', [InvoiceController::class, 'generateInvoices']);
     Route::post('/send-invoices', [InvoiceController::class, 'markAsSent']);
 
-    // Voeg deze regel toe voor het genereren van alle facturen voor klanten
+    //route to generate all invoices
     Route::post('/generate-invoices', [InvoiceController::class, 'generateInvoices']);
 
 
