@@ -35,7 +35,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
-    Route::post('/invoices/mark-all-as-sent', 'App\Http\Controllers\InvoiceController@markAllInvoicesAsSent');
+
+    Route::post('/update-invoices', [InvoiceController::class, 'updateInvoices']);
+
+// In routes/web.php of routes/api.php
+Route::post('/invoices/mark-all-as-sent', [InvoiceController::class, 'markAllInvoicesAsSent']);
 
 });
 

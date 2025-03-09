@@ -192,13 +192,13 @@
                 <tbody class="bg-neutral-900 divide-y divide-gray-700">
                     {#each $paginatedSubscriptions as subscription}
                         <tr>
-                            <td class="px-4 py-4 whitespace-nowrap text-base text-white">{subscription.name}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{subscription.description}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">€{new Intl.NumberFormat('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(subscription.price)}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{subscription.vat}%</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{subscription.start_date}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{subscription.end_date}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-base text-gray-300">
+                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-white">{subscription.name}</td>
+                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{subscription.description}</td>
+                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">€{new Intl.NumberFormat('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(subscription.price)}</td>
+                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{subscription.vat}%</td>
+                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{subscription.start_date}</td>
+                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{subscription.end_date}</td>
+                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300">
                                 <button class="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition duration-300" on:click={() => openEditModal(subscription)}>Edit</button>
                                 <button class="ml-2 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition duration-300" on:click={() => deleteSubscription(subscription)}>Delete</button>
                             </td>

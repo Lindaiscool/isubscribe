@@ -9,8 +9,17 @@ use App\Models\Customer;
 class Invoice extends Model
 {
     use HasFactory;
-    protected $fillable = ['customer_id','invoicenumber','invoicedate','duedate','sentdate','sent','paymentterms','startdate', 'sent'];
-
+    protected $fillable = [
+        'customer_id',
+        'invoicenumber',
+        'invoicedate',
+        'duedate',
+        'sentdate',
+        'sent',
+        'paymentterms',
+        'startdate',
+        'sent'
+    ];
     public function customer()
     {
         return $this->belongsTo(Customer::class);
