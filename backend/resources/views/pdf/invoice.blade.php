@@ -127,15 +127,21 @@
                 <!-- Subscriptions -->
                 <!-- Subscriptions -->
                 <!-- Subscriptions -->
+                <!-- Subscriptions -->
+                <!-- Subscriptions -->
                 <div class="section">
                     <h2>Subscriptions</h2>
                     @php $totalPriceInclVat = 0; @endphp
                     @foreach ($invoice->customer->subscriptions as $subscription)
                         @php
-                            $basePrice = $subscription->price / (1 + $subscription->vat / 100); // Prijs zonder BTW
-                            $vatAmount = $subscription->price - $basePrice; // BTW bedrag
-                            $totalPriceInclVat += $subscription->price; // Tel op bij totaal
-                        @endphp
+                        $priceWithVat = $subscription->price; // Prijs inclusief BTW
+                        $priceNoVat = $priceWithVat / (1 + ($subscription->vat / 100)); // Prijs exclusief BTW
+                        $vatAmount = $priceWithVat - $priceNoVat; // BTW bedrag
+                        $basePrice = $priceNoVat; // Basisprijs
+                        $totalPriceInclVat += $subscription->price;
+
+
+@endphp
                         <div class="subscription-item">
                             <span>{{ $subscription->name }}</span>
                             <span>Base Price: €{{ number_format($basePrice, 2) }}</span>
@@ -144,7 +150,6 @@
                         </div>
                     @endforeach
                 </div>
-
                 <!-- Totals -->
                 <div class="section">
                     <div class="totals">
@@ -152,6 +157,7 @@
                         <p>€{{ number_format($totalPriceInclVat, 2) }}</p>
                     </div>
                 </div>
+
 
                 <!-- Payment Terms -->
                 <div class="section payment">
