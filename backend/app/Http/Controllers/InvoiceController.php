@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use Illuminate\Support\Facades\Storage;
 
-
 class InvoiceController extends Controller
 {
     /**
@@ -20,8 +19,9 @@ class InvoiceController extends Controller
      */
     public function index()
     {
-        $today = Carbon::today();
+        $today = Carbon::today(); // Get today's date
 
+        // Fetch all unsent invoices with active subscriptions
         $invoices = Invoice::with([
             'customer',
             'customer.subscriptions' => function ($query) {
@@ -29,13 +29,14 @@ class InvoiceController extends Controller
                     ->where('end_date', '>=', now()->startOfDay());
             }
         ])
-            ->where('sent', 0)
+            ->where('sent', 0) // Only unsent invoices
             ->whereHas('customer.subscriptions', function ($query) {
                 $query->where('start_date', '<=', now()->endOfDay())
                     ->where('end_date', '>=', now()->startOfDay());
             })
             ->get();
 
+        // Fetch all sent invoices
         $sentInvoices = Invoice::with([
             'customer',
             'customer.subscriptions'
@@ -46,7 +47,6 @@ class InvoiceController extends Controller
         return response()->json(['invoices' => $invoices, 'sent_invoices' => $sentInvoices]);
     }
 
-
     /**
      * Generates new invoices for customers with active subscriptions.
      *
@@ -54,29 +54,27 @@ class InvoiceController extends Controller
      */
     public function generateInvoices(Request $request)
     {
-        // De invoice date blijft altijd de ingevoerde datum of vandaag
+        // Parse the invoice date or use today's date if not provided
         $invoiceDate = Carbon::parse($request->input('invoicedate', Carbon::today()));
-        // Begin met de periode gelijk aan de invoice date
-        $periodDate = $invoiceDate->copy();
+        $periodDate = $invoiceDate->copy(); // Copy the invoice date to set the period date
 
-        // Controleer of er facturen voor deze invoice date zijn...
+        // Check if invoices exist for the given month and year
         $hasInvoicesForThisMonth = Invoice::whereMonth('invoicedate', $invoiceDate->month)
             ->whereYear('invoicedate', $invoiceDate->year)
             ->exists();
 
-        // ...en of er nog onversend facturen voor deze invoice date zijn.
+        // Check if there are unsent invoices for the given month and year
         $hasUnsentInvoicesForThisMonth = Invoice::whereMonth('invoicedate', $invoiceDate->month)
             ->whereYear('invoicedate', $invoiceDate->year)
             ->where('sent', 0)
             ->exists();
 
-        // Als er facturen bestaan maar ze allemaal als 'sent' gemarkeerd zijn,
-        // gebruik dan voor de nieuwe factuur een periode één maand later.
+        // If invoices exist but all are marked as 'sent', use a period one month later
         if ($hasInvoicesForThisMonth && !$hasUnsentInvoicesForThisMonth) {
             $periodDate->addMonth();
         }
 
-        // Haal klanten op met actieve abonnementen in de gehele periode (de hele maand)
+        // Retrieve customers with active subscriptions within the entire period (entire month)
         $customers = Customer::whereHas('subscriptions', function ($query) use ($periodDate) {
             $query->where('start_date', '<=', $periodDate->copy()->endOfMonth())
                 ->where('end_date', '>=', $periodDate->copy()->startOfMonth());
@@ -86,22 +84,22 @@ class InvoiceController extends Controller
             return response()->json(['error' => 'No customers with active subscriptions'], 400);
         }
 
-        DB::beginTransaction();
+        DB::beginTransaction(); // Start a database transaction
 
         try {
             $invoicesGenerated = 0;
-
+            $genInvoices = [];
             foreach ($customers as $customer) {
                 if (!$this->hasInvoiceForThisMonth($customer, $periodDate)) {
+                    // Calculate total price and VAT for subscriptions
                     $subscriptions = $customer->subscriptions->all();
                     $totalPrice = array_sum(array_column($subscriptions, 'price'));
                     $totalVat = array_sum(array_column($subscriptions, 'vat'));
 
-                    // Maak de factuur aan: invoice date blijft $invoiceDate,
-                    // maar start_date en duedate worden gebaseerd op $periodDate.
+                    // Create the invoice
                     $invoice = Invoice::create([
                         'customer_id'    => $customer->id,
-                        'invoicenumber'  => null,  // Laat het factuurnummer null bij het aanmaken
+                        'invoicenumber'  => null,  // Leave invoice number as null during creation
                         'invoicedate'    => $invoiceDate,
                         'startdate'      => $periodDate->copy()->startOfMonth(),
                         'duedate'        => $periodDate->copy()->endOfMonth(),
@@ -113,7 +111,7 @@ class InvoiceController extends Controller
 
                     $invoice->save();
 
-                    // Genereer de PDF (zie eerdere voorbeelden)
+                    // Generate the PDF and save it
                     $pdf = PDF::loadView('pdf.invoice', ['invoice' => $invoice]);
                     $pdfPath = 'invoices/invoice_' . $invoice->id . '.pdf';
                     Storage::disk('public')->put($pdfPath, $pdf->output());
@@ -121,34 +119,27 @@ class InvoiceController extends Controller
                     $invoice->save();
 
                     $invoicesGenerated++;
+                    $genInvoices[] = $invoice;
                 }
             }
 
-            DB::commit();
+            DB::commit(); // Commit the transaction
 
-            return response()->json(['message' => 'Invoices generated successfully!', 'invoices_generated' => $invoicesGenerated]);
+            return response()->json(['message' => 'Invoices generated successfully!', 'invoices_generated' => $invoicesGenerated, 'invoices' => $genInvoices]);
         } catch (\Exception $e) {
-            DB::rollback();
+            DB::rollback(); // Rollback the transaction in case of error
             return response()->json(['error' => 'Failed to generate invoices'], 500);
         }
     }
 
-
-
-
-
-
-
-
-
     /**
-     * Check if the customer already has an invoice for the current month.
+     * Checks if the customer already has an invoice for the current month.
      */
     private function hasInvoiceForThisMonth($customer, $today)
     {
         return Invoice::where('customer_id', $customer->id)
-            ->whereMonth('startdate', $today->month) // Maandcontrole
-            ->whereYear('startdate', $today->year) // Jaarcontrole toevoegen om verwarring met vorige jaren te voorkomen
+            ->whereMonth('startdate', $today->month) // Month check
+            ->whereYear('startdate', $today->year) // Year check to avoid confusion with previous years
             ->exists();
     }
 
@@ -164,17 +155,14 @@ class InvoiceController extends Controller
      */
     private function createInvoice($customer, $subscriptions, $today, $totalPrice, $totalVat)
     {
-
         return Invoice::create([
             'customer_id' => $customer->id,
-            'invoicenumber' => null,  // Laat het factuurnummer null bij het aanmaken van de factuur
+            'invoicenumber' => null,  // Leave invoice number as null during creation
             'invoicedate' => $today,
             'startdate' => $today->copy()->startOfMonth(),
             'duedate' => $today->copy()->endOfMonth(),
             'paymentterms' => 'Pay within 30 days of the invoice date.',
             'sent' => false,
-
-
             'price' => $totalPrice,
             'vat' => $totalVat,
         ]);
@@ -190,21 +178,26 @@ class InvoiceController extends Controller
         return Invoice::whereMonth('invoicedate', Carbon::today()->month)->exists();
     }
 
-
+    /**
+     * Marks invoices as sent and saves the subscriptions snapshot.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function updateInvoices(Request $request)
     {
-        $invoiceIds = $request->input('invoice_ids'); // Haal de geselecteerde factuur-ID's op
+        $invoiceIds = $request->input('invoice_ids'); // Get the selected invoice IDs
 
         if (empty($invoiceIds)) {
             return response()->json(['error' => 'No invoices selected'], 400);
         }
 
-        // Haal de laatste verzonden factuur op
+        // Retrieve the last sent invoice
         $lastSentInvoice = Invoice::where('sent', 1)
             ->orderBy('sentdate', 'desc')
             ->first();
 
-        // Als er een verzonden factuur bestaat, controleer dan of deze meer dan 1 maand geleden is verzonden
+        // If a sent invoice exists, check if it was sent more than a month ago
         if ($lastSentInvoice) {
             $lastSentDate = Carbon::parse($lastSentInvoice->invoicedate);
             $oneMonthAgo = Carbon::now()->subMonth();
@@ -214,51 +207,55 @@ class InvoiceController extends Controller
             }
         }
 
-        // Haal alle facturen op die gemarkeerd moeten worden als verzonden
+        // Retrieve all invoices to be marked as sent
         $invoices = Invoice::whereIn('id', $invoiceIds)->get();
 
         foreach ($invoices as $invoice) {
-            // Zet de invoice date op de huidige datum (datum van verzending)
+            // Set the sent date to the current date (date of sending)
             $invoice->sentdate;
 
-            // Haal de actieve abonnementen op basis van de verzenddatum
+            // Retrieve active subscriptions based on the send date
             $activeSubscriptions = $invoice->customer->subscriptions()
                 ->where('start_date', '<=', now()->endOfDay())
                 ->where('end_date', '>=', now()->startOfDay())
                 ->get();
 
-            // Sla de snapshot op als JSON in de kolom 'subscriptions_snapshot'
+            // Save the snapshot as JSON in the 'subscriptions_snapshot' column
             $invoice->subscriptions_snapshot = $activeSubscriptions->toJson();
 
-            // Markeer de factuur als verzonden en stel de sentdate in
+            // Mark the invoice as sent and set the sent date
             $invoice->sent = 1;
             $invoice->sentdate = now();
 
             $invoice->save();
         }
 
-
-        return response()->json(['message' => 'Invoices marked as sent']);
+        return response()->json(['message' => 'Invoices marked as sent', 'invoices' => $invoices]);
     }
 
+    /**
+     * Shows the PDF for a specific invoice.
+     *
+     * @param $id
+     * @return \Illuminate\Http\Response
+     */
     public function showPdf($id)
     {
         $invoice = Invoice::with('customer')->findOrFail($id);
 
         if ($invoice->sent && $invoice->subscriptions_snapshot) {
-            // Gebruik de snapshot (vergeet niet dat deze JSON-string is)
+            // Use the snapshot (note that this is a JSON string)
             $invoice->subscriptions = json_decode($invoice->subscriptions_snapshot);
         } else {
-            // Gebruik de live data: haal de actieve subscriptions op
+            // Use live data: retrieve active subscriptions
             $invoice->subscriptions = $invoice->customer->subscriptions()
                 ->where('start_date', '<=', now()->endOfDay())
                 ->where('end_date', '>=', now()->startOfDay())
                 ->get();
         }
 
+        // Generate and return the PDF
         $pdf = PDF::loadView('pdf.invoice', ['invoice' => $invoice]);
         return $pdf->stream('invoice_' . $invoice->id . '.pdf');
     }
-
-
 }
