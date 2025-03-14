@@ -31,10 +31,13 @@
             "type": "php",
             "request": "launch",
             "runtimeArgs": [
-                "-dxdebug.mode=debug",
-                "-dxdebug.start_with_request=yes",
-                "-S",
-                "localhost:0"
+                "zend_extension=xdebug.so",
+                "xdebug.mode=debug",
+                "xdebug.start_with_request=yes",
+                "xdebug.client_host=127.0.0.1",
+                "xdebug.client_port=9003",
+                "xdebug.log=/tmp/xdebug.log"
+                
             ],
             "program": "",
             "cwd": "${workspaceRoot}",

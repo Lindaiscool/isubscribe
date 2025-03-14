@@ -16,4 +16,17 @@ class Subscription extends Model
     {
         return $this->belongsToMany(Customer::class, 'customer_subscription');
     }
+
+    // In Subscription model
+public function getBasePrice()
+{
+    return $this->price / (1 + $this->vat / 100);
+}
+
+public function getVatAmount()
+{
+    return $this->price - $this->getBasePrice();
+}
+
+
 }

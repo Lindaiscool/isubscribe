@@ -33,7 +33,6 @@
             if (res.ok) {
                 fetchInvoices(); // Fetch invoices after generation
             } else {
-                console.error(data.error || "Failed to generate invoices.");
             }
         } catch (error) {
             console.error("An error occurred while generating invoices.", error);

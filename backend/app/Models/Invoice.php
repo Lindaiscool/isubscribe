@@ -18,7 +18,8 @@ class Invoice extends Model
         'sent',
         'paymentterms',
         'startdate',
-        'sent'
+        'sent',
+        'subscription_snapshot',
     ];
     public function customer()
     {

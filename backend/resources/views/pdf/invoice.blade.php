@@ -188,7 +188,8 @@
                 <!-- Invoice Information Section -->
                 <div class="section invoice-info">
                     <h2>Invoice Number #{{ $invoice->id }}</h2> <!-- Display Invoice Number -->
-                    <p>Date: {{ \Carbon\Carbon::parse($invoice->sentdate)->format('d-m-Y') }}</p>
+                    <p>period: {{ \Carbon\Carbon::parse($invoice->startdate)->format('d-m-Y') }} -
+                        {{ \Carbon\Carbon::parse($invoice->duedate)->format('d-m-Y') }}</p>
                     <!-- Display Sent Date -->
                 </div>
 
@@ -199,29 +200,36 @@
                 </div>
 
                 <!-- Subscriptions Section -->
-                <div class="section">
-                    <h2>Subscriptions</h2>
-                    @php $totalPriceInclVat = 0; @endphp
-                    @foreach ($invoice->customer->subscriptions as $subscription)
-                        @php
-                            // Calculate subscription details
-                            $priceWithVat = $subscription->price; // Price including VAT
-                            $priceNoVat = $priceWithVat / (1 + $subscription->vat / 100); // Price excluding VAT
-                            $vatAmount = $priceWithVat - $priceNoVat; // VAT amount
-                            $basePrice = $priceNoVat; // Base price
-                            $totalPriceInclVat += $subscription->price; // Add to total price with VAT
-                        @endphp
-                        <!-- Subscription Item -->
-                        <div class="subscription-item">
-                            <span>{{ $subscription->name }}</span> <!-- Display Subscription Name -->
-                            <span>Base Price: €{{ number_format($basePrice, 2) }}</span> <!-- Display Base Price -->
-                            <span>VAT ({{ $subscription->vat }}%): €{{ number_format($vatAmount, 2) }}</span>
-                            <!-- Display VAT Amount -->
-                            <span>Total: €{{ number_format($subscription->price, 2) }}</span>
-                            <!-- Display Total Price -->
-                        </div>
-                    @endforeach
-                </div>
+                @php
+                $totalPriceInclVat = 0; // Initialiseer de variabele
+            @endphp
+
+            @if (isset($subscriptions) && count($subscriptions) > 0)
+                @foreach ($subscriptions as $subscription)
+                    @php
+                        $priceWithVat = $subscription->price;
+                        $priceNoVat = $priceWithVat / (1 + $subscription->vat / 100);
+                        $vatAmount = $priceWithVat - $priceNoVat;
+                        $basePrice = $priceNoVat;
+                        $totalPriceInclVat += $subscription->price; // Tel de prijs op bij het totaal
+                    @endphp
+                    <div class="subscription-item">
+                        <span>{{ $subscription->name }}</span>
+                        <span>Base Price: €{{ number_format($basePrice, 2) }}</span>
+                        <span>VAT ({{ $subscription->vat }}%): €{{ number_format($vatAmount, 2) }}</span>
+                        <span>Total: €{{ number_format($subscription->price, 2) }}</span>
+                    </div>
+                @endforeach
+            @else
+                <p>No subscriptions available for this invoice.</p>
+            @endif
+
+            {{-- Totaal prijs (inclusief btw) weergeven --}}
+            <div class="totals">
+                <p>Total Price (Incl. VAT):</p>
+                <p>€{{ number_format($totalPriceInclVat, 2) }}</p>
+            </div>
+
 
                 <!-- Totals Section -->
                 <div class="section">

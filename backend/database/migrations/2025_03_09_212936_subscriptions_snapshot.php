@@ -8,7 +8,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('invoices', function (Blueprint $table) {
-            $table->text('subscriptions_snapshot')->nullable()->after('sentdate');
+            $table->longText('subscriptions_snapshot')->nullable()->after('sentdate');
         });
     }
 
