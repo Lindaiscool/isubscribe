@@ -16,7 +16,28 @@
     const per_page = 10; // Number of invoices per page
     let selectedInvoices = 0; // Variable to track selected invoices
     let loading = writable(false); // Writable store to track loading state
+    import toastr from "toastr";  // Importing toastr for notifications
 
+        // onMount lifecycle function to fetch data when the component mounts
+        onMount(() => {
+        filterInvoices(); // Filter invoices when the component mounts
+        generateInvoices(); // Generate invoices
+        fetchInvoices(); // Fetch existing invoices
+
+        // Check for success or error message after page reload
+        const successMessage = localStorage.getItem('invoiceSuccessMessage');
+        const errorMessage = localStorage.getItem('invoiceErrorMessage');
+
+        if (successMessage) {
+            toastr.success(successMessage);
+            localStorage.removeItem('invoiceSuccessMessage');
+        }
+
+        if (errorMessage) {
+            toastr.error(errorMessage);
+            localStorage.removeItem('invoiceErrorMessage');
+        }
+    });
     // Function to generate invoices
     const generateInvoices = async () => {
         loading.set(true); // Set loading state to true while generating invoices
@@ -50,12 +71,6 @@
         });
     };
 
-    // onMount lifecycle function to fetch data when the component mounts
-    onMount(() => {
-        filterInvoices(); // Filter invoices when the component mounts
-        generateInvoices(); // Generate invoices
-        fetchInvoices(); // Fetch existing invoices
-    });
 
     // Reactive statement to filter and sort invoices based on search, selection, and sort criteria
     $: filteredAndSortedInvoices = (() => {
@@ -124,31 +139,38 @@
     }
 
     // Function to mark selected invoices as "sent"
+
     const makeDefinite = async () => {
-        const unsentInvoices = filteredAndSortedInvoices.filter((invoice) => invoice.sent === 0); // Get unsent invoices
+        const unsentInvoices = filteredAndSortedInvoices.filter((invoice) => invoice.sent === 0);
         if (unsentInvoices.length === 0) {
-            alert("No unsent invoices to mark as sent.");
+            toastr.warning("No unsent invoices to mark as sent.");
             return;
         }
-        const invoiceIds = unsentInvoices.map((invoice) => invoice.id); // Extract the IDs of unsent invoices
+        const invoiceIds = unsentInvoices.map((invoice) => invoice.id);
+
+        // Verstuur de update aanvraag om de facturen als "sent" te markeren
         const res = await fetch("http://localhost:8000/api/update-invoices", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${$authToken}`,
             },
-            body: JSON.stringify({ invoice_ids: invoiceIds }), // Send the list of invoice IDs to be updated
+            body: JSON.stringify({ invoice_ids: invoiceIds }),
         });
+
         const response = await res.json();
+
+        // Sla de response boodschap op in localStorage
         if (res.ok) {
-            alert("Invoices successfully updated!");
-            fetchInvoices(); // Fetch updated invoices
-            filterInvoices(); // Filter invoices after updating
-            location.reload(); // Reload the page after update
+            localStorage.setItem('invoiceSuccessMessage', response.message); // Opslaan in localStorage
+            location.reload();  // Herlaad de pagina zonder te wachten op e-mailverzending
         } else {
-            alert(response.error || "Failed to update invoices");
+            toastr[response.type](response.message);
         }
     };
+
+
+
 </script>
 
 <!-- Button to mark invoices as "sent" -->
