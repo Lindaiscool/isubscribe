@@ -200,53 +200,55 @@
                 </div>
 
                 <!-- Subscriptions Section -->
-                @php
-                $totalPriceInclVat = 0; // Initialiseer de variabele
-            @endphp
-
-            @if (isset($subscriptions) && count($subscriptions) > 0)
-                @foreach ($subscriptions as $subscription)
+                <div class="section subscriptions">
+                    <h2>Subscriptions</h2>
                     @php
-                        $priceWithVat = $subscription->price;
-                        $priceNoVat = $priceWithVat / (1 + $subscription->vat / 100);
-                        $vatAmount = $priceWithVat - $priceNoVat;
-                        $basePrice = $priceNoVat;
-                        $totalPriceInclVat += $subscription->price; // Tel de prijs op bij het totaal
+                        $totalPriceInclVat = 0; // Initialize the total
                     @endphp
-                    <div class="subscription-item">
-                        <span>{{ $subscription->name }}</span>
-                        <span>Base Price: €{{ number_format($basePrice, 2) }}</span>
-                        <span>VAT ({{ $subscription->vat }}%): €{{ number_format($vatAmount, 2) }}</span>
-                        <span>Total: €{{ number_format($subscription->price, 2) }}</span>
-                    </div>
-                @endforeach
-            @else
-                <p>No subscriptions available for this invoice.</p>
-            @endif
 
-            {{-- Totaal prijs (inclusief btw) weergeven --}}
-            <div class="totals">
-                <p>Total Price (Incl. VAT):</p>
-                <p>€{{ number_format($totalPriceInclVat, 2) }}</p>
-            </div>
+                    @if (isset($subscriptions) && count($subscriptions) > 0)
+                        @foreach ($subscriptions as $subscription)
+                            @php
+                                $priceWithVat = $subscription->price;
+                                $priceNoVat = $priceWithVat / (1 + $subscription->vat / 100);
+                                $vatAmount = $priceWithVat - $priceNoVat;
+                                $basePrice = $priceNoVat;
+                                $totalPriceInclVat += $subscription->price;
+                            @endphp
+                            <div class="subscription-item">
+                                <span>{{ $subscription->name }}</span>
+                                <span>Base Price: €{{ number_format($basePrice, 2) }}</span>
+                                <span>VAT ({{ $subscription->vat }}%): €{{ number_format($vatAmount, 2) }}</span>
+                                <span>Total: €{{ number_format($subscription->price, 2) }}</span>
+                            </div>
+                        @endforeach
+                    @else
+                        <p>No subscriptions available for this invoice.</p>
+                    @endif
 
 
-                <!-- Totals Section -->
-                <div class="section">
+                    {{-- Totaal prijs (inclusief btw) weergeven --}}
                     <div class="totals">
-                        <p>Total Price (Incl. VAT):</p> <!-- Total Price Label -->
-                        <p>€{{ number_format($totalPriceInclVat, 2) }}</p> <!-- Display Total Price -->
+                        <p>Total Price (Incl. VAT):</p>
+                        <p>€{{ number_format($totalPriceInclVat, 2) }}</p>
                     </div>
-                </div>
 
-                <!-- Payment Terms Section -->
-                <div class="section payment">
-                    <h2></h2>
-                    <p>{{ $invoice->paymentterms }}</p> <!-- Display Payment Terms -->
+
+                    <!-- Totals Section -->
+                    <div class="section">
+                        <div class="totals">
+                            <p>Total Price (Incl. VAT):</p> <!-- Total Price Label -->
+                            <p>€{{ number_format($totalPriceInclVat, 2) }}</p> <!-- Display Total Price -->
+                        </div>
+                    </div>
+
+                    <!-- Payment Terms Section -->
+                    <div class="section payment">
+                        <p>{{ $invoice->paymentterms }}</p> <!-- Display Payment Terms -->
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 </body>
 
 </html>

@@ -252,10 +252,10 @@
                 <thead class="bg-zinc-800">
                     <tr>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">Customer Name</th>
-                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">Email Address</th>
-                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">Address</th>
-                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">Subscriptions</th>
-                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">Email Address</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">Address</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">Subscriptions</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">Status</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
@@ -264,14 +264,14 @@
                     {#each $paginatedCustomers as customer}
                         <tr>
                             <td class="px-4 py-4 whitespace-nowrap text-left text-white">{customer.name}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-left text-gray-300">{customer.email}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-left text-gray-300">{customer.adres}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-left">
+                            <td class="px-4 py-4 whitespace-nowrap text-left text-gray-300 hidden sm:table-cell">{customer.email}</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-left text-gray-300 hidden sm:table-cell">{customer.adres}</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-left hidden sm:table-cell">
                                 {#each customer.subscriptions as sub}
                                     <span class="inline-block bg-indigo-800 text-indigo-200 px-2 py-1 rounded-full text-xs font-medium mr-1">{sub.name}</span>
                                 {/each}
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-left text-white">{customer.statusLabel}</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-left text-white hidden sm:table-cell">{customer.statusLabel}</td>
                             <td class="px-4 py-4 whitespace-nowrap text-left">
                                 <button class="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition duration-300" on:click={() => openEditModal(customer)}>Edit</button>
                                 {#if customer.deleted_at}

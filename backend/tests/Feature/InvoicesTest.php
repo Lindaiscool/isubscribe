@@ -2,12 +2,17 @@
 
 use App\Models\Customer;
 use App\Models\Invoice;
-use App\Models\Subscription;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Pest\Laravel\{get, post, assertDatabaseHas};
+use App\Mail\InvoiceSentMail;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
-// Setup before each test: Create a user, customer, and invoices for testing
+
+uses(RefreshDatabase::class);
+
 beforeEach(function () {
     // Create a user and authenticate via Sanctum
     $user = User::factory()->create();
@@ -84,9 +89,13 @@ it('returns no invoices when there are none', function () {
 
 // Test that invoices are generated for customers with active subscriptions
 it('generates invoices for customers with active subscriptions', function () {
-    // Create a customer
+    // Zorg ervoor dat er geen bestaande facturen zijn voor klanten
+    Invoice::query()->delete();
+
+    // Make sure the customer has an active subscription
     $customer = Customer::factory()->create();
-    // Create an active subscription for this customer
+
+    // Make sure the customer has an active subscription
     $customer->subscriptions()->create([
         'name'        => 'Test Subscription',
         'description' => 'Test Description',
@@ -96,12 +105,12 @@ it('generates invoices for customers with active subscriptions', function () {
         'end_date'    => now()->addDays(30),
     ]);
 
-    // Send POST request to /api/generate-invoices
+    // send POST request to /api/generate-invoices
     $response = $this->postJson('/api/generate-invoices');
 
-    // Assert response status is 200
+    // Assert dat de response status 200 is
     $response->assertStatus(200);
-    // Assert that the success message is included in the response
+    // Assert dat het succesbericht in de response zit
     $response->assertJsonFragment([
         'message' => 'Invoices generated successfully!',
     ]);
@@ -123,7 +132,10 @@ it('returns an error when there are no customers with active subscriptions', fun
     // Assert response status is 400
     $response->assertStatus(400);
     // Assert that the error message is included in the response
-    $response->assertJson(['error' => 'No customers with active subscriptions']);
+    $response->assertJson([
+        'message' => 'No customers with active subscriptions',
+        'type' => 'error',
+    ]);
 });
 
 // Test that selected invoices are marked as sent
@@ -138,7 +150,11 @@ it('marks selected invoices as sent', function () {
     // Assert response status is 200
     $response->assertStatus(200);
     // Assert that the success message is included in the response
-    $response->assertJson(['message' => 'Invoices marked as sent']);
+    $response->assertJson([
+        'message' => 'Invoices are sent.',
+        'type' => 'success',
+        'invoices' => $invoiceIds,
+    ]);
 
     // Check if each invoice's 'sent' status is updated to 1
     foreach ($invoices as $invoice) {
@@ -155,7 +171,10 @@ it('returns an error when no invoices are selected', function () {
     // Assert response status is 400
     $response->assertStatus(400);
     // Assert that the error message is included in the response
-    $response->assertJson(['error' => 'No invoices selected']);
+    $response->assertJson([
+        'message' => 'There are no invoices',
+        'type' => 'error',
+    ]);
 });
 
 // Test that a PDF can be shown for an existing invoice

@@ -1,5 +1,4 @@
 <script>
-    import { onMount } from "svelte";
     import { authToken } from "../stores/auth.js";
     import toastr from "toastr";
 
@@ -19,9 +18,43 @@
     let start_date = "";
     let end_date = "";
 
+    // Function to validate the subscription data
+    function validateSubscription() {
+        // Validate price - must be a positive number
+        if (price <= 0 || isNaN(price)) {
+            toastr.error("Price must be a positive number", "Validation Error");
+            return false;
+        }
+
+        // Validate VAT - must be a positive number
+        if (vat < 0 || isNaN(vat)) {
+            toastr.error("VAT must be a positive number", "Validation Error");
+            return false;
+        }
+
+        // Validate start and end dates
+        if (!start_date || !end_date) {
+            toastr.error("Start date and end date are required", "Validation Error");
+            return false;
+        }
+
+        // Check if end date is not before the start date
+        if (new Date(end_date) < new Date(start_date)) {
+            toastr.error("End date cannot be before the start date", "Validation Error");
+            return false;
+        }
+
+        return true; // All validation checks passed
+    }
+
     // Handle form submission to create a new subscription
     async function handleSubmit(event) {
         event.preventDefault(); // Prevents the default form submission behavior
+
+        // Perform validation before submitting
+        if (!validateSubscription()) {
+            return; // Stop if validation fails
+        }
 
         // Construct the subscription data object
         const subscriptionData = {
@@ -64,9 +97,9 @@
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-10" on:click={toggleModal}>
         <!-- Modal content that prevents clicks from propagating -->
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white" on:click|stopPropagation>
             <h2 class="text-xl font-semibold">Add New Subscription</h2>
+
             <!-- Subscription creation form -->
             <form on:submit={handleSubmit} class="space-y-4">
                 <!-- Name input field -->

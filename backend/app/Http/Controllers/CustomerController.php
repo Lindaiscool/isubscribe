@@ -46,17 +46,25 @@ class CustomerController extends Controller
             'subscriptions.*' => 'exists:subscriptions,id'
         ]);
 
-        $customer = new Customer();
-        $customer->fill($request->all());
-        $customer->save(); // Saves the new customer to the database.
-        $customer->subscriptions()->attach($request->subscriptions); // Attaches related subscriptions to the customer.
-        $customer->load('subscriptions'); // Reloads the customer to include subscriptions.
+        try {
+            $customer = new Customer();
+            $customer->fill($request->all());
+            $customer->save();
+            $customer->subscriptions()->attach($request->subscriptions);
+            $customer->load('subscriptions');
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to create customer',
+                'error' => $e->getMessage()
+            ], 500);
+        }
 
         return response()->json([
             'message' => 'Customer created successfully!',
             'customer' => $customer
         ], 201);
     }
+
 
     /**
      * Retrieves and displays a specific customer by ID.
@@ -97,14 +105,26 @@ class CustomerController extends Controller
             'subscriptions.*' => 'exists:subscriptions,id'
         ]);
 
-        $customer = Customer::find($id); // Finds the existing customer by ID.
-        $customer->fill($request->all());
-        $customer->save(); // Saves the updated customer data to the database.
-        $customer->subscriptions()->sync($request->subscriptions); // Updates the subscriptions associated with the customer.
-        $customer->load('subscriptions'); // Reloads the customer to include updated subscriptions.
+        try {
+            $customer = Customer::find($id);
+            if (!$customer) {
+                return response()->json(['message' => 'Customer not found'], 404);
+            }
+
+            $customer->fill($request->all());
+            $customer->save();
+            $customer->subscriptions()->sync($request->subscriptions);
+            $customer->load('subscriptions');
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to update customer',
+                'error' => $e->getMessage()
+            ], 500);
+        }
 
         return response()->json($customer, 200);
     }
+
 
     /**
      * Deletes a specified customer from the database by ID.

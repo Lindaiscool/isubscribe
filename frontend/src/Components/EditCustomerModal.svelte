@@ -59,9 +59,53 @@
         }
     }
 
+    // Validate the house number and postal code format
+    function validateHouseNumber(houseNumber) {
+        // House number should be digits, optionally with a letter suffix (e.g., 12A)
+        const regex = /\d/;
+        return regex.test(houseNumber);
+    }
+
+    function validatePostalCode(postalCode) {
+        // Dutch postal code format (1234 AB)
+        const regex = /^\d{4}\s?[A-Za-z]{2}$/;
+        return regex.test(postalCode);
+    }
+
     // Handle form submission when customer details are updated
     async function handleEditSubmit(event) {
         event.preventDefault(); // Prevent default form submission behavior
+
+        // Validate fields before submitting
+        if (!customer.name.trim()) {
+            toastr.error("Name is required", "Validation Error");
+            return;
+        }
+
+        if (!customer.email.trim() || !/\S+@\S+\.\S+/.test(customer.email)) {
+            toastr.error("Please enter a valid email address", "Validation Error");
+            return;
+        }
+
+        if (!customer.street.trim()) {
+            toastr.error("Street is required", "Validation Error");
+            return;
+        }
+
+        if (!validateHouseNumber(customer.house_number)) {
+            toastr.error("House number must contain at least one digit and may contain a letter (e.g., 12A)", "Validation Error");
+            return;
+        }
+
+        if (!validatePostalCode(customer.postal_code)) {
+            toastr.error("Postal code must be in the format 1234 AB", "Validation Error");
+            return;
+        }
+
+        if (!customer.city.trim()) {
+            toastr.error("City is required", "Validation Error");
+            return;
+        }
 
         // Combine the address parts into one string
         const combinedAddress = `${customer.street} ${customer.house_number}, ${customer.postal_code.toUpperCase()} ${customer.city}`;
@@ -114,6 +158,7 @@
         dispatch("close");
     }
 </script>
+
 
 {#if show && customer}
     <!-- Modal is shown if 'show' is true -->

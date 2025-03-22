@@ -115,22 +115,22 @@
                         <!-- Table headers for sorting invoices -->
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider cursor-pointer" on:click={() => sortData("id")}>Invoice Number</th>
                         <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider cursor-pointer" on:click={() => sortData("customer")}>Customer</th>
-                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">Subscription(s)</th>
-                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">Invoice Date</th>
-                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider">Due Date</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">Subscription(s)</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">Invoice Date</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-gray-300 uppercase tracking-wider hidden sm:table-cell">Due Date</th>
                     </tr>
                 </thead>
                 <tbody class="bg-neutral-900 divide-y divide-gray-700">
                     {#each $paginatedInvoices as inv} <!-- Loop through paginated invoices and display them -->
                         <tr>
-                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">{inv?.id}</td>
-                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300 hidden sm:table-cell">
+                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300">{inv?.id}</td>
+                            <td class="px-4 py-4 text-left whitespace-nowrap text-base text-gray-300">
                                 <a href={"http://localhost:8000/invoice/" + inv.id + "/pdf"} target="_blank" class="underline hover:text-blue-400">
                                     {inv.customer.name || "No customer"}
                                 </a>
                             </td>
 
-                            <td class="px-4 py-4 text-left whitespace-nowrap text-left">
+                            <td class="px-4 py-4 text-left whitespace-nowrap text-left hidden sm:table-cell">
                                 {#if inv.sent} <!-- Check if the invoice is sent -->
                                     {#if inv.subscriptions_snapshot} <!-- Display subscriptions snapshot if available -->
                                         {#each JSON.parse(inv.subscriptions_snapshot) as subscription}

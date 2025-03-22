@@ -42,32 +42,43 @@
     // Function to validate the address fields
     function validateAddress() {
         if (!street.trim() || !house_number.trim() || !postal_code.trim() || !city.trim()) {
-            addressError = "All address fields are required."; // Show error if any address field is missing
+            addressError = "All address fields are required.";
             return false;
         }
         if (!/\d/.test(house_number)) {
-            addressError = "House number must contain at least one digit."; // Ensure house number contains digits
+            addressError = "House number must contain at least one digit.";
             return false;
         }
         if (!/^\d{4}\s?[A-Za-z]{2}$/.test(postal_code)) {
-            addressError = "Postal code must consist of 4 digits and 2 letters (e.g., 1234 AB)."; // Validate Dutch postal code format
+            addressError = "Postal code must consist of 4 digits and 2 letters (e.g., 1234 AB).";
             return false;
         }
-        addressError = ""; // Clear address error if validation passes
-        return true; // Return true if all validations pass
+        addressError = ""; // Clear error if validation passes
+        return true;
     }
 
     // Handle the form submission for creating a new customer
     async function handleSubmit(event) {
-        event.preventDefault(); // Prevent the default form submission behavior
-        formError = ""; // Clear any previous form errors
+        event.preventDefault(); // Stop de standaard formulieractie
+        formError = ""; // Reset eventuele vorige foutmeldingen
 
-        // Validate the address before submitting the form
-        if (!validateAddress()) {
-            return; // Stop form submission if address validation fails
+        // Validatie voor de naam en e-mail
+        if (!name.trim()) {
+            toastr.error("Name is required", "Validation Error");
+            return;
+        }
+        if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
+            toastr.error("Please enter a valid email", "Validation Error");
+            return;
         }
 
-        // Combine all input fields into a customer data object
+        // Validatie van adresvelden
+        if (!validateAddress()) {
+            toastr.error(addressError, "Validation Error"); // Toon specifieke foutmelding voor adres
+            return;
+        }
+
+        // Verzamel alle gegevens
         const customerData = {
             name,
             email,
@@ -75,48 +86,48 @@
             house_number,
             postal_code,
             city,
-            subscriptions: Object.values(selectedSubs), // Get the selected subscriptions
+            subscriptions: Object.values(selectedSubs),
         };
 
-        // Send the customer data to the backend API to create a new customer
         const response = await fetch("http://localhost:8000/api/customers", {
-            method: "POST", // Specify the POST method to create the customer
+            method: "POST",
             headers: {
-                "Content-Type": "application/json", // Sending JSON data
-                Authorization: "Bearer " + $authToken, // Pass the authorization token in the header
-                Accept: "application/json", // Expecting JSON response
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + $authToken,
+                Accept: "application/json",
             },
-            body: JSON.stringify(customerData), // Convert the customer data to JSON and send it
+            body: JSON.stringify(customerData),
         });
 
-        const responseData = await response.json(); // Parse the response JSON
+        const responseData = await response.json();
         if (response.ok) {
-            toggleModal(); // Close the modal if the customer is successfully created
+            toggleModal();
             customers.update((current) => [
                 ...current,
                 {
                     id: responseData.customer.id,
                     name: responseData.customer.name,
                     email: responseData.customer.email,
-                    adres: `${responseData.customer.street} ${responseData.customer.house_number}, ${responseData.customer.postal_code} ${responseData.customer.city}`, // Combine address fields
+                    adres: `${responseData.customer.street} ${responseData.customer.house_number}, ${responseData.customer.postal_code} ${responseData.customer.city}`,
                     subscriptions: responseData.customer.subscriptions,
                 },
             ]);
-            toastr.success("Customer created successfully"); // Show success message
+            toastr.success("Customer created successfully");
         } else {
-            // Handle errors if customer creation fails
+            // Toon gedetailleerde foutmeldingen van de server
             if (responseData.errors) {
                 let message = "Failed to create customer: ";
                 for (const [field, errors] of Object.entries(responseData.errors)) {
-                    message += `${field} - ${errors.join(", ")}. `; // Construct error message with field-specific errors
+                    message += `${field} - ${errors.join(", ")}. `;
                 }
-                toastr.error(message, "Error"); // Show error notification
+                toastr.error(message, "Error");
             } else {
-                toastr.error("Failed to create customer", "Error"); // General error message if no specific errors are found
+                toastr.error("Failed to create customer", "Error");
             }
         }
     }
 </script>
+
 
 <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 transition duration-300 mt-10 mb-8" on:click={toggleModal}> Add Customer </button>
 
@@ -162,10 +173,6 @@
                         <input type="text" id="city" bind:value={city} class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="City" required />
                     </div>
                 </div>
-
-                {#if addressError}
-                    <p class="text-red-500 text-sm mt-1">{addressError}</p> <!-- Display address error if validation fails -->
-                {/if}
 
                 <!-- MultiSelect component for subscriptions -->
                 <MultiSelect options={allSubs} bind:selected={selectedSubs} />
