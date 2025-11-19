@@ -22,7 +22,7 @@
     // Fetch subscriptions from the API
     async function fetchSubscriptions() {
         loading.set(true); // Set loading state to true to show a loading indicator
-        const res = await fetch("http://localhost:8000/api/subscriptions", {
+        const res = await fetch("http://localhost/Linda/i-Subscribe/backend/public/api/subscriptions", {
             headers: { Authorization: "Bearer " + $authToken }, // Include authentication token in the request
         });
         if (res.ok) {
@@ -123,7 +123,7 @@
     async function deleteSubscription(subscription) {
         if (confirm("Are you sure you want to delete this subscription?")) {
             // Confirm deletion
-            const response = await fetch(`http://localhost:8000/api/subscriptions/${subscription.id}`, {
+            const response = await fetch(`http://localhost/Linda/i-Subscribe/backend/public/api/subscriptions/${subscription.id}`, {
                 method: "DELETE", // HTTP method for deletion
                 headers: {
                     Authorization: "Bearer " + $authToken, // Authorization header with token

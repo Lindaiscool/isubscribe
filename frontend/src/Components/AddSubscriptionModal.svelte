@@ -67,7 +67,7 @@
         };
 
         // Send the subscription data to the backend via a POST request
-        const response = await fetch("http://localhost:8000/api/subscriptions", {
+        const response = await fetch("http://localhost/Linda/i-Subscribe/backend/public/api/subscriptions", {
             method: "POST", // Using POST method to create a new resource
             headers: {
                 "Content-Type": "application/json", // Indicate that we are sending JSON data

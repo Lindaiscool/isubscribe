@@ -87,10 +87,13 @@ class GenerateInvoiceJob implements ShouldQueue
 
     private function generateAndSavePdf($invoice)
     {
-        $pdf = PDF::loadView('pdf.invoice', ['invoice' => $invoice]);
-        $pdfPath = 'invoices/invoice_' . $invoice->id . '.pdf';
-        Storage::disk('public')->put($pdfPath, $pdf->output());
-        $invoice->pdf_path = $pdfPath;
-        $invoice->save();
+        // Retrieve the subscriptions snapshot for the invoice
+        $subscriptions = json_decode($invoice->subscriptions_snapshot);
+
+        // Generate the PDF with the invoice and subscription details
+        $pdf = PDF::loadView('pdf.invoice', ['invoice' => $invoice, 'subscriptions' => $subscriptions]);
+
+        // Stream the PDF to the browser (allows the user to download or view the PDF)
+        return $pdf->stream('invoice_' . $invoice->id . '.pdf');
     }
 }

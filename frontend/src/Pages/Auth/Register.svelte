@@ -8,7 +8,8 @@
     let password_confirmation = "";
 
     const register = async () => {
-        const response = await fetch("http://localhost:8000/api/register", {
+        const response = await fetch("http://localhost/Linda/i-Subscribe/backend/public/api/register", {
+
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

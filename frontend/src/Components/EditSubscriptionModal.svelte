@@ -58,7 +58,7 @@
         };
 
         // Send the updated subscription data to the server via a PUT request
-        const response = await fetch(`http://localhost:8000/api/subscriptions/${subscription.id}`, {
+        const response = await fetch(`http://localhost/Linda/i-Subscribe/backend/public/api/subscriptions/${subscription.id}`, {
             method: "PUT", // Specifies that it's a PUT request
             headers: {
                 "Content-Type": "application/json", // We are sending JSON data

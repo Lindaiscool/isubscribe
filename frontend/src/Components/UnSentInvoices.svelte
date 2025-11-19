@@ -44,7 +44,7 @@
     const generateInvoices = async () => {
         loading.set(true); // Set the loading state to true while generating invoices
         try {
-            const res = await fetch("http://localhost:8000/api/generate-invoices", {
+            const res = await fetch("http://localhost/Linda/i-Subscribe/backend/public/api/generate-invoices", {
                 method: "POST", // Make a POST request to generate invoices
                 headers: {
                     "Content-Type": "application/json",
@@ -117,7 +117,7 @@
     // Function to fetch invoices from the server
     async function fetchInvoices() {
         loading.set(true); // Set the loading state to true while fetching data
-        const res = await fetch("http://localhost:8000/api/invoices", {
+        const res = await fetch("http://localhost/Linda/i-Subscribe/backend/public/api/invoices", {
             method: "GET", // Use GET method to retrieve invoices
             headers: {
                 "Content-Type": "application/json",
@@ -162,7 +162,7 @@
 
         if (result.isConfirmed) {
             // Send the request to mark the invoices as "sent"
-            const res = await fetch("http://localhost:8000/api/update-invoices", {
+            const res = await fetch("http://localhost/Linda/i-Subscribe/backend/public/api/update-invoices", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

@@ -14,7 +14,7 @@
     // onMount lifecycle function to fetch invoice data after component mounts
     onMount(async () => {
         // Fetch request to the API to get invoice data
-        const data = await fetch(`http://localhost:8000/api/invoices`, {
+        const data = await fetch(`http://localhost/Linda/i-Subscribe/backend/public/api/invoices`, {
             method: "GET", // Using GET method to fetch data
             headers: {
                 "Content-Type": "application/json", // Ensuring the response is in JSON format

@@ -20,7 +20,7 @@
     // Function to fetch customers from the API
     async function fetchCustomers() {
         loading.set(true);
-        const res = await fetch("http://localhost:8000/api/customers", {
+        const res = await fetch("http://localhost/Linda/i-Subscribe/backend/public/api/customers", {
             headers: { Authorization: "Bearer " + $authToken },
         });
         if (res.ok) {
@@ -39,7 +39,7 @@
 
     // Function to fetch subscriptions from the API
     async function fetchSubscriptions() {
-        const res = await fetch("http://localhost:8000/api/subscriptions", {
+        const res = await fetch("http://localhost/Linda/i-Subscribe/backend/public/api/subscriptions", {
             headers: { Authorization: "Bearer " + $authToken },
         });
         if (res.ok) {
@@ -144,7 +144,7 @@
     // Function to delete a customer after confirmation
     async function deleteCustomer(customer) {
         if (confirm("Are you sure you want to delete this customer?")) {
-            const response = await fetch(`http://localhost:8000/api/customers/${customer.id}`, {
+            const response = await fetch(`http://localhost/Linda/i-Subscribe/backend/public/api/customers/${customer.id}`, {
                 method: "DELETE",
                 headers: {
                     Authorization: "Bearer " + $authToken, // Pass the auth token in the header
@@ -172,7 +172,7 @@
     // Function to archive a customer
     async function archiveCustomer(customer) {
         if (confirm("Are you sure you want to archive this customer?")) {
-            const response = await fetch(`http://localhost:8000/api/customers/${customer.id}`, {
+            const response = await fetch(`http://localhost/Linda/i-Subscribe/backend/public/api/customers/${customer.id}`, {
                 method: "DELETE",
                 headers: {
                     Authorization: "Bearer " + $authToken,
@@ -192,7 +192,7 @@
 
     async function restoreCustomer(customer) {
     if (confirm("Are you sure you want to restore this customer?")) {
-        const response = await fetch(`http://localhost:8000/api/customers/${customer.id}/restore`, {
+        const response = await fetch(`http://localhost/Linda/i-Subscribe/backend/public/api/customers/${customer.id}/restore`, {
             method: "POST",
             headers: {
                 Authorization: "Bearer " + $authToken,

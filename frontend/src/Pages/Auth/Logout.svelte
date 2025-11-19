@@ -8,7 +8,7 @@
         authToken.subscribe((t) => (token = t))();
 
         // Perform a POST request to the logout API endpoint
-        const response = await fetch("http://localhost:8000/api/logout", {
+        const response = await fetch("http://localhost/Linda/i-Subscribe/backend/public/api/logout", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

@@ -10,7 +10,6 @@ use Illuminate\Queue\SerializesModels;
 class InvoiceSentMail extends Mailable
 {
     use Queueable, SerializesModels;
-
     public $invoice;  // The invoice object to be sent in the email
     public $pdfData;  // The PDF data to be attached to the email
 

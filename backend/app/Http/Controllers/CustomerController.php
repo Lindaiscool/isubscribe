@@ -6,32 +6,29 @@ use Illuminate\Http\Request;
 use App\Models\Customer;
 use Carbon\Carbon;
 
-
 class CustomerController extends Controller
 {
     /**
-     * Displays a listing of all customers, including those that are soft-deleted.
+     * Retrieves and returns all customers, including those that have been soft-deleted.
      *
-     * @return \Illuminate\Http\JsonResponse Returns all customers as a JSON response with a 200 HTTP status.
+     * @return \Illuminate\Http\JsonResponse A JSON response containing all customers, including archived ones.
      */
     public function index()
     {
-        $customers = Customer::with('subscriptions')->withTrashed()->get(); // Retrieves all customers with their subscriptions, even those that are soft-deleted.
+        $customers = Customer::with('subscriptions')->withTrashed()->get(); // Get all customers with subscriptions, including those marked as deleted.
         return response()->json($customers);
     }
 
     /**
-     * Placeholder for creating a new customer form. This method is typically not implemented in API-driven applications as forms are handled on the frontend.
+     * This is a placeholder method for creating a new customer, usually handled by frontend forms in API-based apps.
      */
     public function create() {}
 
     /**
-     * Stores a newly created customer in the database.
+     * Validates and stores a new customer in the database. Attaches subscriptions to the customer.
      *
-     * Validates input fields, creates a new Customer record, attaches subscriptions, and returns the new customer data as JSON.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse Returns the newly created customer as JSON with a 201 HTTP status.
+     * @param \Illuminate\Http\Request $request Contains the input data for creating a customer.
+     * @return \Illuminate\Http\JsonResponse Returns the created customer in JSON format with a 201 HTTP status.
      */
     public function store(Request $request)
     {
@@ -48,49 +45,46 @@ class CustomerController extends Controller
 
         try {
             $customer = new Customer();
-            $customer->fill($request->all());
-            $customer->save();
-            $customer->subscriptions()->attach($request->subscriptions);
-            $customer->load('subscriptions');
+            $customer->fill($request->all()); // Fill the customer data from the request.
+            $customer->save(); // Save the customer to the database.
+            $customer->subscriptions()->attach($request->subscriptions); // Attach the subscriptions to the customer.
+            $customer->load('subscriptions'); // Load the subscriptions to include them in the response.
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to create customer',
                 'error' => $e->getMessage()
-            ], 500);
+            ], 500); // Return an error message if there was a failure.
         }
 
         return response()->json([
             'message' => 'Customer created successfully!',
             'customer' => $customer
-        ], 201);
+        ], 201); // Return the created customer data.
     }
 
-
     /**
-     * Retrieves and displays a specific customer by ID.
+     * Retrieves and returns a specific customer by their ID.
      *
      * @param string $id The ID of the customer to retrieve.
-     * @return \Illuminate\Http\JsonResponse Returns the specified customer as JSON with a 200 HTTP status.
+     * @return \Illuminate\Http\JsonResponse Returns the customer data in JSON format.
      */
     public function show(string $id)
     {
-        $customer = Customer::find($id); // Finds the customer by their ID.
-        return response()->json($customer, 200);
+        $customer = Customer::find($id); // Find the customer by ID.
+        return response()->json($customer, 200); // Return the customer data.
     }
 
     /**
-     * Placeholder for editing a customer. Not implemented because forms are typically handled on the front end in API-driven applications.
+     * Placeholder method for editing a customer. Typically, this is handled by frontend forms in API-based applications.
      */
     public function edit(string $id) {}
 
     /**
-     * Updates a specified customer in the database based on the provided ID and request data.
+     * Validates and updates an existing customer based on the given ID and request data.
      *
-     * Validates input, updates the customer record, synchronizes subscriptions, and returns updated customer data as JSON.
-     *
-     * @param \Illuminate\Http\Request $request
+     * @param \Illuminate\Http\Request $request Contains the updated customer data.
      * @param string $id The ID of the customer to update.
-     * @return \Illuminate\Http\JsonResponse Returns the updated customer as JSON with a 200 HTTP status.
+     * @return \Illuminate\Http\JsonResponse Returns the updated customer data in JSON format.
      */
     public function update(Request $request, string $id)
     {
@@ -108,76 +102,58 @@ class CustomerController extends Controller
         try {
             $customer = Customer::find($id);
             if (!$customer) {
-                return response()->json(['message' => 'Customer not found'], 404);
+                return response()->json(['message' => 'Customer not found'], 404); // If customer is not found, return a 404 error.
             }
 
-            $customer->fill($request->all());
-            $customer->save();
-            $customer->subscriptions()->sync($request->subscriptions);
-            $customer->load('subscriptions');
+            $customer->fill($request->all()); // Update customer data with the new values from the request.
+            $customer->save(); // Save the updated customer data to the database.
+            $customer->subscriptions()->sync($request->subscriptions); // Sync subscriptions to ensure they match the new list.
+            $customer->load('subscriptions'); // Load subscriptions to include them in the response.
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to update customer',
                 'error' => $e->getMessage()
-            ], 500);
+            ], 500); // Return an error message if there is a failure.
         }
 
-        return response()->json($customer, 200);
+        return response()->json($customer, 200); // Return the updated customer data.
     }
 
-
     /**
-     * Deletes a specified customer from the database by ID.
+     * Soft-deletes a customer by ID. If the customer is already soft-deleted, returns a message indicating that.
      *
      * @param string $id The ID of the customer to delete.
-     * @return \Illuminate\Http\JsonResponse Returns an empty JSON response with a 204 HTTP status.
+     * @return \Illuminate\Http\JsonResponse Returns a success or error message in JSON format.
      */
-
     public function destroy($id)
     {
-        // Zoek de klant op, inclusief gearchiveerde klanten
         try {
-            $customer = Customer::withTrashed()->findOrFail($id);  // Dit geeft automatisch een 404 als de klant niet bestaat
+            $customer = Customer::withTrashed()->findOrFail($id); // Find the customer, including soft-deleted ones.
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json(['message' => 'Customer not found'], 404);
+            return response()->json(['message' => 'Customer not found'], 404); // Return a 404 if the customer doesn't exist.
         }
 
-        // Controleer of de klant al gearchiveerd is (soft delete)
         if (is_null($customer->deleted_at)) {
-            // Soft delete de klant (stel deleted_at in)
-            $customer->delete();  // Dit zal de klant soft verwijderen
-            return response()->json(['message' => 'Customer soft deleted'], 204);  // Return 204 als de klant soft verwijderd is
+            $customer->delete(); // Soft delete the customer by setting the deleted_at timestamp.
+            return response()->json(['message' => 'Customer soft deleted'], 204); // Return a success message with a 204 status code.
         }
 
-        // Zet deleted_at om naar een Carbon-object en vergelijk met de datum van 1 jaar geleden
-        $deletedAt = Carbon::parse($customer->deleted_at);  // Zet deleted_at om naar een Carbon-object
-        $oneYearAgo = Carbon::now()->subYear();  // Carbon object voor 1 jaar geleden
-
-        // Als de klant meer dan 1 jaar geleden is gearchiveerd, kan de klant permanent worden verwijderd
-        if ($deletedAt <= $oneYearAgo) {
-            // Verwijder de klant definitief (forceDelete)
-            $customer->forceDelete();  // forceDelete() om de klant definitief te verwijderen
-            return response()->json(['message' => 'Customer permanently deleted'], 204);  // Return 204 als de klant permanent verwijderd is
-        }
-
-        // Als de klant minder dan 1 jaar geleden is gearchiveerd, geef een foutmelding
-        return response()->json(['message' => 'Customer must be archived for at least 1 year before permanent deletion'], 400);
+        return response()->json(['message' => 'Customer is already archived and will be permanently deleted after 1 year'], 400); // Return an error if the customer is already soft-deleted.
     }
 
-
     /**
-     * Restores a soft-deleted customer based on ID.
+     * Restores a soft-deleted customer based on their ID.
      *
      * @param string $id The ID of the customer to restore.
-     * @return \Illuminate\Http\JsonResponse Returns a response indicating whether the restoration was successful or the customer was not found.
+     * @return \Illuminate\Http\JsonResponse Returns a success or error message in JSON format.
      */
     public function restore(string $id)
     {
-        $customer = Customer::withTrashed()->where('id', $id)->first(); // Finds the customer including those that are soft-deleted.
+        $customer = Customer::withTrashed()->where('id', $id)->first(); // Find the customer, including soft-deleted ones.
         if ($customer) {
-            $customer->restore(); // Restores the soft-deleted customer.
-            return response()->json(['message' => 'Customer restored successfully'], 200);
+            $customer->restore(); // Restore the soft-deleted customer.
+            return response()->json(['message' => 'Customer restored successfully'], 200); // Return a success message.
         }
-        return response()->json(['message' => 'Customer not found'], 404);
+        return response()->json(['message' => 'Customer not found'], 404); // Return a 404 error if the customer is not found.
     }
 }

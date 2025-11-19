@@ -180,12 +180,12 @@ class InvoiceController extends Controller
                     ->where('end_date', '>=', now()->startOfDay()); // Zorg ervoor dat de subscriptions actief zijn vandaag
             }
         ])
-            ->where('sent', 0) // Alleen ongesende invoices ophalen
+            ->where('sent', 0) //only get unsent invoices
             ->whereHas('customer.subscriptions', function ($query) use ($today) {
                 $query->where('start_date', '<=', now()->endOfDay())
-                    ->where('end_date', '>=', now()->startOfDay()); // Zorg ervoor dat de klant actieve subscriptions heeft
+                    ->where('end_date', '>=', now()->startOfDay()); //get customers with active subscriptions
             })
-            ->get(); // Verkrijg de invoices en retourneer ze
+            ->get();
 
         // Roep updateSnapshot aan om de subscriptions snapshot bij te werken
         $this->updateSnapshot($invoices);
@@ -198,16 +198,16 @@ class InvoiceController extends Controller
     private function updateSnapshot($invoices)
 {
     foreach ($invoices as $invoice) {
-        // Verkrijg de actieve subscriptions van de klant
+        // Retrieve the customer's active subscriptions
         $subscriptions = $invoice->customer->subscriptions()
             ->where('start_date', '<=', now()->endOfDay())
             ->where('end_date', '>=', now()->startOfDay())
             ->get()
-            ->toArray(); // Verkrijg alle actieve subscriptions
+            ->toArray(); // Get all active subscriptions
 
-        // Update de subscriptions snapshot van de invoice
-        $invoice->subscriptions_snapshot = json_encode($subscriptions); // Zet de subscriptions in JSON formaat
-        $invoice->save(); // Sla de gewijzigde invoice op
+        // Update the subscriptions snapshot of the invoice
+        $invoice->subscriptions_snapshot = json_encode($subscriptions); // Convert subscriptions to JSON format
+        $invoice->save(); // Save the updated invoice
     }
 }
 
@@ -312,20 +312,16 @@ class InvoiceController extends Controller
      */
     private function generateAndSavePdf($invoice)
     {
-        // Haal de actieve subscriptions van de klant op
-        $subscriptions = json_decode($invoice->subscriptions_snapshot); // De opgeslagen snapshot van de subscriptions
+        // Retrieve the subscriptions snapshot for the invoice
+        $subscriptions = json_decode($invoice->subscriptions_snapshot);
 
-        // Genereer de PDF met de subscriptions
+        // Generate the PDF with the invoice and subscription details
         $pdf = PDF::loadView('pdf.invoice', ['invoice' => $invoice, 'subscriptions' => $subscriptions]);
 
-        // Sla de PDF op in de public opslag
-        $pdfPath = 'invoices/invoice_' . $invoice->id . '.pdf';
-        Storage::disk('public')->put($pdfPath, $pdf->output());
-
-        // Update de invoice met het pad naar de opgeslagen PDF
-        $invoice->pdf_path = $pdfPath;
-        $invoice->save();
+        // Stream the PDF to the browser (allows the user to download or view the PDF)
+        return $pdf->stream('invoice_' . $invoice->id . '.pdf');
     }
+
 
 
     /**

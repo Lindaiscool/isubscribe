@@ -13,7 +13,8 @@
     // Asynchronous function to handle the login process
     const login = async () => {
         // Send a POST request to the login API endpoint
-        const response = await fetch("http://localhost:8000/api/login", {
+        const response = await fetch("http://localhost/Linda/i-Subscribe/backend/public/api/login", {
+
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

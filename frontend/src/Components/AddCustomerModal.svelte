@@ -30,7 +30,7 @@
 
     // Fetch available subscriptions on component mount
     onMount(async () => {
-        const res = await fetch("http://localhost:8000/api/subscriptions", {
+        const res = await fetch("http://localhost/Linda/i-Subscribe/backend/public/api/subscriptions", {
             headers: {
                 Authorization: "Bearer " + $authToken, // Include the authentication token in the request
                 Accept: "application/json",
@@ -89,7 +89,7 @@
             subscriptions: Object.values(selectedSubs),
         };
 
-        const response = await fetch("http://localhost:8000/api/customers", {
+        const response = await fetch("http://localhost/Linda/i-Subscribe/backend/public/api/customers", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

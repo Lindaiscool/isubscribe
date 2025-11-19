@@ -124,7 +124,7 @@
         };
 
         // Send PUT request to update the customer data
-        const response = await fetch(`http://localhost:8000/api/customers/${customer.id}`, {
+        const response = await fetch(`http://localhost/Linda/i-Subscribe/backend/public/api/customers/${customer.id}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
